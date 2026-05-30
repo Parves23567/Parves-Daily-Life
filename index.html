@@ -3786,4 +3786,1290 @@ window.addEventListener('appinstalled', function() {
 </div>
 
 </body>
+</html>// ============================================================
+//  JSONBIN.IO CLOUD SYNC (Firebase এর বিকল্প)
+// ============================================================
+const JB_MASTER_KEY = "$2a$10$LL6gInycK3BDyg7zaVQL7uCMvZEt7oP8lV8fpupnCn/vkfkS92/mW";
+const JB_ACCESS_KEY = "$2a$10$nJP5BSCUNTcd/KU6OPTw7.WeLCKrdqNhyhv1B8Zo5TDvhRvUoNnlS";
+const JB_API = "https://api.jsonbin.io/v3/b";
+const JB_KEYS = ['office','routines','exercises','bazaar','family','school','rent',
+                 'bills','reminders','calevents','expenses','habits','notes','travels','chill'];
+
+let fbConnected = false;
+let jbBinId = null;
+let syncTimeout = null;
+
+function getDeviceId() {
+  let id = localStorage.getItem('jm_device_id');
+  if(!id) { id = 'dev_' + uid(); localStorage.setItem('jm_device_id', id); }
+  return id;
+}
+
+// JSONBin headers
+function jbHeaders(extra) {
+  var h = {
+    'Content-Type': 'application/json',
+    'X-Master-Key': JB_MASTER_KEY,
+    'X-Access-Key': JB_ACCESS_KEY
+  };
+  return Object.assign(h, extra||{});
+}
+
+// Bin ID সংরক্ষণ ও পুনরুদ্ধার
+function getBinId() {
+  if(jbBinId) return jbBinId;
+  jbBinId = localStorage.getItem('jm_jb_bin_id');
+  return jbBinId;
+}
+
+// ============================================================
+//  INIT - JSONBin Bin তৈরি বা খুঁজে বের করা
+// ============================================================
+function initFirebase() {
+  hideFbLoading();
+  updateFbDot('syncing');
+
+  var binId = getBinId();
+  if(binId) {
+    // Bin আছে - সরাসরি load করুন
+    loadAllFromFirebase();
+  } else {
+    // নতুন Bin তৈরি করুন
+    createNewBin();
+  }
+}
+
+function createNewBin() {
+  var initData = {_device: getDeviceId(), _created: new Date().toISOString()};
+  JB_KEYS.forEach(function(k) { initData[k] = DB.get(k); });
+
+  fetch(JB_API, {
+    method: 'POST',
+    headers: jbHeaders({'X-Bin-Name': 'parves-daily-life', 'X-Bin-Private': 'false'}),
+    body: JSON.stringify(initData)
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(data) {
+    if(data.metadata && data.metadata.id) {
+      jbBinId = data.metadata.id;
+      localStorage.setItem('jm_jb_bin_id', jbBinId);
+      fbConnected = true;
+      updateFbDot('online');
+      showSyncBar('synced', '🟢 Cloud sync চালু হয়েছে!');
+      hideSyncBarAfter(3000);
+      setInterval(pollFirebase, 30000);
+    } else {
+      throw new Error('Bin creation failed');
+    }
+  })
+  .catch(function(err) {
+    console.error('JSONBin create error:', err);
+    fbConnected = false;
+    updateFbDot('offline');
+    showSyncBar('offline', '📵 অফলাইন মোড চলছে');
+    hideSyncBarAfter(3000);
+    setTimeout(initFirebase, 20000);
+  });
+}
+
+// ============================================================
+//  LOAD ALL DATA FROM JSONBIN
+// ============================================================
+function loadAllFromFirebase() {
+  var binId = getBinId();
+  if(!binId) { createNewBin(); return; }
+
+  var loadTimer = setTimeout(function() {
+    fbConnected = false;
+    updateFbDot('offline');
+    showSyncBar('offline', '📵 লোড ব্যর্থ - অফলাইন মোড');
+    hideSyncBarAfter(3000);
+  }, 8000);
+
+  fetch(JB_API + '/' + binId + '/latest', {
+    headers: jbHeaders()
+  })
+  .then(function(r) {
+    if(!r.ok) throw new Error('HTTP ' + r.status);
+    return r.json();
+  })
+  .then(function(resp) {
+    clearTimeout(loadTimer);
+    fbConnected = true;
+    updateFbDot('online');
+
+    var data = resp.record;
+    if(data) {
+      JB_KEYS.forEach(function(k) {
+        if(data[k] && Array.isArray(data[k]) && data[k].length > 0) {
+          DB._originalSet ? DB._originalSet(k, data[k]) : localStorage.setItem('jm_'+k, JSON.stringify(data[k]));
+        }
+      });
+      showSyncBar('synced', '✅ Cloud থেকে ডেটা লোড হয়েছে');
+    } else {
+      showSyncBar('synced', '🟢 Cloud সংযুক্ত');
+    }
+
+    hideSyncBarAfter(2500);
+    // Refresh current page
+    var activePg = document.querySelector('.page.active');
+    if(activePg) renderPage(activePg.id.replace('page-',''));
+    setInterval(pollFirebase, 30000);
+  })
+  .catch(function(err) {
+    clearTimeout(loadTimer);
+    fbConnected = false;
+    updateFbDot('offline');
+    showSyncBar('offline', '📵 অফলাইন - স্থানীয় ডেটা ব্যবহার হচ্ছে');
+    hideSyncBarAfter(3000);
+    setTimeout(initFirebase, 20000);
+  });
+}
+
+// ============================================================
+//  POLL - অন্য ডিভাইস থেকে আপডেট চেক
+// ============================================================
+var lastPollTime = 0;
+function pollFirebase() {
+  var binId = getBinId();
+  if(!binId) return;
+
+  fetch(JB_API + '/' + binId + '/latest', { headers: jbHeaders() })
+  .then(function(r) { return r.json(); })
+  .then(function(resp) {
+    fbConnected = true;
+    updateFbDot('online');
+    var data = resp.record;
+    var serverTime = resp.metadata && resp.metadata.createdAt ? new Date(resp.metadata.createdAt).getTime() : 0;
+    if(serverTime > lastPollTime && lastPollTime > 0) {
+      lastPollTime = serverTime;
+      JB_KEYS.forEach(function(k) {
+        if(data[k] && Array.isArray(data[k])) {
+          localStorage.setItem('jm_'+k, JSON.stringify(data[k]));
+        }
+      });
+      var activePg = document.querySelector('.page.active');
+      if(activePg) renderPage(activePg.id.replace('page-',''));
+      showSyncBar('synced', '🔄 অন্য ডিভাইস থেকে আপডেট হয়েছে');
+      hideSyncBarAfter(2500);
+    }
+    if(!lastPollTime) lastPollTime = serverTime;
+  })
+  .catch(function() {
+    fbConnected = false;
+    updateFbDot('offline');
+  });
+}
+
+// ============================================================
+//  PUSH ALL DATA TO JSONBIN
+// ============================================================
+function pushAllToFirebase() {
+  var binId = getBinId();
+  if(!binId) { createNewBin(); return; }
+
+  updateFbDot('syncing');
+  var payload = {_device: getDeviceId(), _updated: Date.now()};
+  JB_KEYS.forEach(function(k) { payload[k] = DB.get(k); });
+
+  fetch(JB_API + '/' + binId, {
+    method: 'PUT',
+    headers: jbHeaders(),
+    body: JSON.stringify(payload)
+  })
+  .then(function(r) {
+    if(!r.ok) throw new Error('HTTP ' + r.status);
+    fbConnected = true;
+    updateFbDot('online');
+    showSyncBar('synced', '✅ সম্পূর্ণ ডেটা Cloud এ সংরক্ষিত');
+    hideSyncBarAfter(2000);
+  })
+  .catch(function(err) {
+    fbConnected = false;
+    updateFbDot('offline');
+    showSyncBar('error', '❌ সংরক্ষণ ব্যর্থ');
+    hideSyncBarAfter(3000);
+  });
+}
+
+// ============================================================
+//  SYNC SINGLE KEY (debounced)
+// ============================================================
+function syncToFirebase(key) {
+  if(!getBinId()) return;
+  clearTimeout(syncTimeout);
+  updateFbDot('syncing');
+
+  syncTimeout = setTimeout(function() {
+    pushAllToFirebase();
+  }, 1500);
+}
+
+// ============================================================
+//  OVERRIDE DB.set TO AUTO-SYNC
+// ============================================================
+const _originalSet = DB.set.bind(DB);
+DB._originalSet = _originalSet;
+DB.set = function(key, val) {
+  _originalSet(key, val);
+  syncToFirebase(key);
+};
+
+// ============================================================
+//  MANUAL SYNC
+// ============================================================
+function manualSync() {
+  if(!fbConnected) {
+    toast('পুনরায় সংযোগ করা হচ্ছে...', 'success');
+    initFirebase();
+    return;
+  }
+  pushAllToFirebase();
+  toast('Cloud sync শুরু হয়েছে ☁️');
+}
+
+// ============================================================
+//  MULTI-DEVICE ID
+// ============================================================
+function showUserId() {
+  var id = getBinId() || getDeviceId();
+  alert('Bin ID: ' + id + '\n\nঅন্য ডিভাইসে একই ডেটা দেখতে এই ID ব্যবহার করুন।');
+}
+
+// Helpers (UI)
+function hideFbLoading() {
+  var el = document.getElementById('fb-loading');
+  if(el) el.style.display = 'none';
+}
+function showFbLoading() {
+  var el = document.getElementById('fb-loading');
+  if(el) el.style.display = 'flex';
+}
+function skipFbLoading() { hideFbLoading(); }
+
+// ============================================================
+//  MOTIVATIONAL QUOTES
+// ============================================================
+const QUOTES = [
+  {text:"প্রতিটি দিন একটি নতুন সুযোগ। আজকেই শুরু করুন।", author:"অজানা"},
+  {text:"স্বপ্ন দেখো, পরিশ্রম করো, সফল হও।", author:"অজানা"},
+  {text:"সময় কখনো ফিরে আসে না, তাই প্রতিটি মুহূর্তকে কাজে লাগাও।", author:"বেঞ্জামিন ফ্র্যাংকলিন"},
+  {text:"জীবনে সফল হতে হলে ব্যর্থতাকে ভয় পেলে চলবে না।", author:"অজানা"},
+  {text:"ছোট ছোট পদক্ষেপই একদিন বড় লক্ষ্যে পৌঁছে দেয়।", author:"লাও জু"},
+  {text:"আজকের কাজ আজকেই করো, কালকের উপর ছেড়ে দিও না।", author:"বেঞ্জামিন ফ্র্যাংকলিন"},
+  {text:"যে মন থেকে বিশ্বাস করে সে সফল হয়।", author:"মার্টিন লুথার কিং"},
+  {text:"পরিশ্রমই সাফল্যের চাবিকাঠি।", author:"অজানা"},
+  {text:"নিজেকে বিশ্বাস করো, তাহলে সবকিছু সম্ভব।", author:"অজানা"},
+  {text:"শুরু করাটাই সবচেয়ে কঠিন কাজ, একবার শুরু করলে বাকিটা সহজ।", author:"অজানা"},
+  {text:"জ্ঞান অর্জনে কোনো বয়স নেই, প্রতিদিন কিছু না কিছু শেখো।", author:"অজানা"},
+  {text:"সুখী জীবনের চাবি হলো কৃতজ্ঞতা।", author:"অজানা"},
+  {text:"একটু একটু করে এগিয়ে চলাই সাফল্যের পথ।", author:"অজানা"},
+  {text:"আজকের কষ্ট আগামীর সুখের বীজ।", author:"অজানা"},
+  {text:"ভালো অভ্যাস জীবনকে সুন্দর করে তোলে।", author:"অ্যারিস্টটল"},
+];
+let quoteIdx = Math.floor(Math.random() * QUOTES.length);
+function newQuote() {
+  quoteIdx = (quoteIdx + 1) % QUOTES.length;
+  const q = QUOTES[quoteIdx];
+  const tEl = document.getElementById('quote-text');
+  const aEl = document.getElementById('quote-author');
+  if(tEl) { tEl.style.opacity='0'; setTimeout(()=>{tEl.textContent=q.text;tEl.style.opacity='1';},200); }
+  if(aEl) aEl.textContent = '— ' + q.author;
+}
+function showDailyQuote() {
+  const saved = localStorage.getItem('jm_quote_date');
+  const today_s = new Date().toDateString();
+  if(saved !== today_s) {
+    quoteIdx = Math.floor(Math.random() * QUOTES.length);
+    localStorage.setItem('jm_quote_date', today_s);
+    localStorage.setItem('jm_quote_idx', quoteIdx);
+  } else {
+    quoteIdx = parseInt(localStorage.getItem('jm_quote_idx') || '0');
+  }
+  const q = QUOTES[quoteIdx % QUOTES.length];
+  const tEl = document.getElementById('quote-text');
+  const aEl = document.getElementById('quote-author');
+  if(tEl) tEl.textContent = q.text;
+  if(aEl) aEl.textContent = '— ' + q.author;
+}
+
+// ============================================================
+//  CUSTOM THEME / COLOR PICKER
+// ============================================================
+function applyTheme(swatch) {
+  document.querySelectorAll('.theme-swatch').forEach(s => s.classList.remove('active'));
+  swatch.classList.add('active');
+  const primary = swatch.getAttribute('data-primary');
+  const secondary = swatch.getAttribute('data-secondary');
+  setColors(primary, secondary);
+}
+function applyCustomColor() {
+  const primary = document.getElementById('custom-primary').value;
+  const secondary = document.getElementById('custom-secondary').value;
+  document.querySelectorAll('.theme-swatch').forEach(s => s.classList.remove('active'));
+  setColors(primary, secondary);
+}
+function setColors(primary, secondary) {
+  const root = document.documentElement;
+  root.style.setProperty('--primary', primary);
+  root.style.setProperty('--primary-dark', shadeColor(primary, -15));
+  root.style.setProperty('--primary-light', shadeColor(primary, 15));
+  root.style.setProperty('--secondary', secondary);
+  localStorage.setItem('jm_theme_primary', primary);
+  localStorage.setItem('jm_theme_secondary', secondary);
+  const cp = document.getElementById('custom-primary');
+  const cs = document.getElementById('custom-secondary');
+  if(cp) cp.value = primary;
+  if(cs) cs.value = secondary;
+}
+function shadeColor(color, percent) {
+  let R = parseInt(color.substring(1,3),16);
+  let G = parseInt(color.substring(3,5),16);
+  let B = parseInt(color.substring(5,7),16);
+  R = Math.min(255, Math.max(0, R + Math.round(R*percent/100)));
+  G = Math.min(255, Math.max(0, G + Math.round(G*percent/100)));
+  B = Math.min(255, Math.max(0, B + Math.round(B*percent/100)));
+  return '#'+R.toString(16).padStart(2,'0')+G.toString(16).padStart(2,'0')+B.toString(16).padStart(2,'0');
+}
+function loadSavedTheme() {
+  const p = localStorage.getItem('jm_theme_primary');
+  const s = localStorage.getItem('jm_theme_secondary');
+  if(p && s) setColors(p, s);
+}
+
+// ============================================================
+//  DATA IMPORT (JSON)
+// ============================================================
+let importData = null;
+function handleImport(input) {
+  const file = input.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const data = JSON.parse(e.target.result);
+      importData = data;
+      const keys = Object.keys(data);
+      const total = keys.reduce((s,k) => s+(Array.isArray(data[k])?data[k].length:0), 0);
+      const el = document.getElementById('import-preview');
+      if(el) el.innerHTML = '✅ ফাইল পড়া হয়েছে: <strong>'+keys.length+'</strong> বিভাগে <strong>'+total+'</strong>টি আইটেম।';
+      const btn = document.getElementById('import-confirm-btn');
+      if(btn) btn.style.display='block';
+      toast('ফাইল সফলভাবে পড়া হয়েছে','success');
+    } catch(err) {
+      const el = document.getElementById('import-preview');
+      if(el) el.innerHTML = '❌ অবৈধ JSON ফাইল।';
+      importData = null;
+      toast('ফাইল পড়তে ব্যর্থ','error');
+    }
+  };
+  reader.readAsText(file);
+}
+function confirmImport() {
+  if(!importData) return;
+  ['office','routines','exercises','bazaar','family','school','rent','bills','reminders','calevents','expenses','habits','notes','travels','chill'].forEach(k => {
+    if(importData[k]) DB.set(k, importData[k]);
+  });
+  importData = null;
+  const el = document.getElementById('import-preview'); if(el) el.textContent='';
+  const btn = document.getElementById('import-confirm-btn'); if(btn) btn.style.display='none';
+  const fi = document.getElementById('import-file-input'); if(fi) fi.value='';
+  closeModal('importModal');
+  renderDashboard();
+  toast('ডেটা সফলভাবে আমদানি হয়েছে ✅','success');
+}
+
+// ============================================================
+//  PHOTO UPLOAD (Base64 LocalStorage)
+// ============================================================
+let pendingPhotos = [];
+let activePhotoFilter = 'সব';
+function openPhotoUpload() {
+  const fi = document.getElementById('photo-file-input');
+  if(fi) fi.click();
+}
+function handlePhotoUpload(input) {
+  const files = Array.from(input.files);
+  if(!files.length) return;
+  pendingPhotos = [];
+  let loaded = 0;
+  files.forEach(file => {
+    if(file.size > 2*1024*1024) { toast('ছবির সাইজ ২MB এর কম হতে হবে','error'); loaded++; return; }
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      pendingPhotos.push(e.target.result);
+      loaded++;
+      if(loaded === files.length && pendingPhotos.length) openModal('photoCatModal');
+    };
+    reader.readAsDataURL(file);
+  });
+}
+function confirmPhotoUpload() {
+  const cat = document.getElementById('photo-cat-select').value;
+  const photos = DB.get('photos');
+  pendingPhotos.forEach(data => {
+    photos.unshift({id:uid(), data, cat, date:new Date().toLocaleDateString('bn-BD')});
+  });
+  if(photos.length > 40) photos.splice(40);
+  try { DB.set('photos', photos); }
+  catch(e) { toast('স্টোরেজ পূর্ণ, কিছু ছবি বাদ গেছে','error'); }
+  pendingPhotos = [];
+  const fi = document.getElementById('photo-file-input'); if(fi) fi.value='';
+  closeModal('photoCatModal');
+  renderPhotos();
+  toast('ছবি সংরক্ষিত হয়েছে 📸','success');
+}
+function filterPhotos(cat, btn) {
+  activePhotoFilter = cat;
+  document.querySelectorAll('#page-photos .filter-tab').forEach(b => b.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+  renderPhotos();
+}
+function renderPhotos() {
+  const all = DB.get('photos');
+  const list = activePhotoFilter==='সব' ? all : all.filter(p => p.cat===activePhotoFilter);
+  const el = document.getElementById('main-photo-grid');
+  if(!el) return;
+  if(!list.length) {
+    el.innerHTML = '<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">📸</div><div class="empty-text">কোনো ছবি নেই<br><small>উপরের + বোতামে ছবি যোগ করুন</small></div></div>';
+    return;
+  }
+  el.innerHTML = list.map(p => `
+    <div class="photo-thumb">
+      <img src="${p.data}" alt="ছবি" loading="lazy">
+      <button class="del-photo" onclick="deletePhoto('${p.id}')">✕</button>
+    </div>
+  `).join('');
+}
+function deletePhoto(id) {
+  if(!confirm('ছবি মুছবেন?')) return;
+  DB.set('photos', DB.get('photos').filter(p => p.id!==id));
+  renderPhotos();
+  toast('ছবি মুছে ফেলা হয়েছে');
+}
+
+// ============================================================
+//  EXPENSE CHARTS
+// ============================================================
+let expChart = null, incExpChart = null;
+let activeChartType = 'bar';
+function switchChart(type, btn) {
+  activeChartType = type;
+  document.querySelectorAll('.chart-tab').forEach(b => b.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+  buildExpenseChart();
+}
+function getChartColors() {
+  const isDark = document.documentElement.getAttribute('data-theme')==='dark';
+  return {
+    text: isDark ? '#AAAACC' : '#4A4A6A',
+    grid: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)',
+    primary: getComputedStyle(document.documentElement).getPropertyValue('--primary').trim() || '#6C63FF'
+  };
+}
+function buildExpenseChart() {
+  const expenses = DB.get('expenses');
+  const ctx = document.getElementById('expenseChart');
+  if(!ctx) return;
+  if(expChart) { expChart.destroy(); expChart=null; }
+  const {text:textColor, grid:gridColor, primary} = getChartColors();
+  if(activeChartType==='doughnut') {
+    const catMap = {};
+    expenses.filter(e=>e.type==='খরচ').forEach(e=>{catMap[e.cat]=(catMap[e.cat]||0)+e.amount;});
+    const labels = Object.keys(catMap); const data = Object.values(catMap);
+    const colors = ['#6C63FF','#FF6B6B','#06D6A0','#FFD166','#4CC9F0','#A855F7','#F97316','#EC4899'];
+    if(!data.length){ctx.getContext('2d').clearRect(0,0,ctx.width,ctx.height);return;}
+    expChart = new Chart(ctx, {type:'doughnut', data:{labels, datasets:[{data, backgroundColor:colors.slice(0,data.length), borderWidth:2, borderColor:'transparent'}]}, options:{plugins:{legend:{labels:{color:textColor,font:{family:'Hind Siliguri',size:11}}}},cutout:'60%'}});
+  } else if(activeChartType==='line') {
+    const days = Array.from({length:14},(_,i)=>{const d=new Date();d.setDate(d.getDate()-13+i);return d.toISOString().split('T')[0];});
+    const totals = days.map(d=>expenses.filter(e=>e.date===d&&e.type==='খরচ').reduce((s,e)=>s+e.amount,0));
+    expChart = new Chart(ctx, {type:'line', data:{labels:days.map(d=>d.slice(5)), datasets:[{label:'দৈনিক খরচ',data:totals,borderColor:primary,backgroundColor:primary+'22',fill:true,tension:0.4,pointBackgroundColor:primary,pointRadius:4}]}, options:{plugins:{legend:{labels:{color:textColor,font:{family:'Hind Siliguri'}}}},scales:{x:{ticks:{color:textColor},grid:{color:gridColor}},y:{ticks:{color:textColor},grid:{color:gridColor}}}}});
+  } else {
+    const months = Array.from({length:6},(_,i)=>{const d=new Date();d.setMonth(d.getMonth()-5+i);return{key:`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`,label:BN_MONTHS[d.getMonth()]};});
+    const totals = months.map(m=>expenses.filter(e=>e.date&&e.date.startsWith(m.key)&&e.type==='খরচ').reduce((s,e)=>s+e.amount,0));
+    expChart = new Chart(ctx, {type:'bar', data:{labels:months.map(m=>m.label), datasets:[{label:'মাসিক খরচ',data:totals,backgroundColor:primary+'CC',borderRadius:8}]}, options:{plugins:{legend:{labels:{color:textColor,font:{family:'Hind Siliguri'}}}},scales:{x:{ticks:{color:textColor},grid:{color:gridColor}},y:{ticks:{color:textColor},grid:{color:gridColor}}}}});
+  }
+}
+function buildIncomeExpenseChart() {
+  const expenses = DB.get('expenses');
+  const ctx = document.getElementById('incomeExpenseChart');
+  if(!ctx) return;
+  if(incExpChart) { incExpChart.destroy(); incExpChart=null; }
+  const {text:textColor, grid:gridColor} = getChartColors();
+  const months = Array.from({length:6},(_,i)=>{const d=new Date();d.setMonth(d.getMonth()-5+i);return{key:`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`,label:BN_MONTHS[d.getMonth()]};});
+  const incomes = months.map(m=>expenses.filter(e=>e.date&&e.date.startsWith(m.key)&&e.type==='আয়').reduce((s,e)=>s+e.amount,0));
+  const exps = months.map(m=>expenses.filter(e=>e.date&&e.date.startsWith(m.key)&&e.type==='খরচ').reduce((s,e)=>s+e.amount,0));
+  incExpChart = new Chart(ctx, {type:'bar', data:{labels:months.map(m=>m.label), datasets:[{label:'আয়',data:incomes,backgroundColor:'#06D6A0CC',borderRadius:6},{label:'খরচ',data:exps,backgroundColor:'#EF233CCC',borderRadius:6}]}, options:{plugins:{legend:{labels:{color:textColor,font:{family:'Hind Siliguri'}}}},scales:{x:{ticks:{color:textColor},grid:{color:gridColor}},y:{ticks:{color:textColor},grid:{color:gridColor}}}}});
+}
+function buildTopCategories() {
+  const expenses = DB.get('expenses').filter(e=>e.type==='খরচ');
+  const catMap = {};
+  expenses.forEach(e=>{catMap[e.cat]=(catMap[e.cat]||0)+e.amount;});
+  const sorted = Object.entries(catMap).sort((a,b)=>b[1]-a[1]);
+  const total = sorted.reduce((s,c)=>s+c[1],0);
+  const el = document.getElementById('top-cats');
+  if(!el) return;
+  if(!sorted.length){el.innerHTML='<div class="empty-state"><div class="empty-text">কোনো খরচ নেই</div></div>';return;}
+  const colors = ['#6C63FF','#FF6B6B','#06D6A0','#FFD166','#4CC9F0','#A855F7','#F97316','#EC4899'];
+  el.innerHTML = sorted.slice(0,6).map(([cat,amt],i)=>`
+    <div style="margin-bottom:10px">
+      <div class="progress-label"><span style="display:flex;align-items:center;gap:6px"><span style="width:10px;height:10px;border-radius:50%;background:${colors[i%colors.length]};display:inline-block"></span>${cat}</span><span>৳${toBnNum(amt)}</span></div>
+      <div class="progress-bar"><div class="progress-fill" style="width:${total?amt/total*100:0}%;background:${colors[i%colors.length]}"></div></div>
+    </div>
+  `).join('');
+}
+function renderChart() {
+  setTimeout(()=>{
+    buildExpenseChart();
+    buildIncomeExpenseChart();
+    buildTopCategories();
+  }, 50);
+}
+
+// ============================================================
+//  PIN LOCK SYSTEM
+// ============================================================
+let pinBuffer = '';
+const PIN_MAP = {'১':'1','২':'2','৩':'3','৪':'4','৫':'5','৬':'6','৭':'7','৮':'8','৯':'9','০':'0'};
+function pinInput(ch) {
+  if(pinBuffer.length>=4) return;
+  pinBuffer += PIN_MAP[ch]||ch;
+  updatePinDots();
+  if(pinBuffer.length===4) setTimeout(checkPin,150);
+}
+function pinDel() { pinBuffer=pinBuffer.slice(0,-1); updatePinDots(); }
+function pinClear() { pinBuffer=''; updatePinDots(); const e=document.getElementById('pin-error');if(e)e.textContent=''; }
+function updatePinDots() {
+  for(let i=0;i<4;i++){const d=document.getElementById('pd'+i);if(d)d.classList.toggle('filled',i<pinBuffer.length);}
+}
+function checkPin() {
+  const saved = localStorage.getItem('jm_pin');
+  if(!saved) {
+    localStorage.setItem('jm_pin', pinBuffer);
+    hidePinScreen();
+    toast('PIN সেট হয়েছে 🔐','success');
+    return;
+  }
+  if(pinBuffer===saved) { hidePinScreen(); }
+  else {
+    const e=document.getElementById('pin-error');
+    if(e) e.textContent='❌ ভুল PIN, আবার চেষ্টা করুন';
+    pinBuffer=''; updatePinDots();
+    setTimeout(()=>{const el=document.getElementById('pin-error');if(el)el.textContent='';},2000);
+  }
+}
+function hidePinScreen() {
+  const ps=document.getElementById('pin-screen');
+  if(ps){ps.style.transition='opacity 0.4s';ps.style.opacity='0';setTimeout(()=>{ps.style.display='none';},400);}
+}
+function skipPin() { hidePinScreen(); }
+function showPinScreen() {
+  const ps=document.getElementById('pin-screen');
+  const saved=localStorage.getItem('jm_pin');
+  if(!saved){const p=ps.querySelector('p');if(p)p.textContent='প্রথমবার: একটি ৪ সংখ্যার PIN সেট করুন';}
+  if(ps){ps.style.display='flex';ps.style.opacity='1';}
+}
+
+
+// ============================================================
+//  AGE CALCULATOR
+// ============================================================
+function renderAge() {
+  // Set today as default target date
+  const targetEl = document.getElementById('age-target');
+  if(targetEl && !targetEl.value) targetEl.value = today();
+  // Set max date for dob
+  const dobEl = document.getElementById('age-dob');
+  if(dobEl) dobEl.max = today();
+  // Load family members with DOB
+  renderAgeFamilyList();
+  // Auto calc if dob already set
+  if(dobEl && dobEl.value) calcAge();
+}
+
+function calcAge() {
+  const dobVal = document.getElementById('age-dob').value;
+  if(!dobVal) { document.getElementById('age-result').style.display='none'; return; }
+
+  const targetVal = document.getElementById('age-target').value || today();
+  const dob = new Date(dobVal);
+  const target = new Date(targetVal);
+
+  if(dob > target) {
+    toast('জন্ম তারিখ লক্ষ্য তারিখের পরে হতে পারে না!', 'error');
+    document.getElementById('age-result').style.display='none';
+    return;
+  }
+
+  // Calculate exact years, months, days
+  let years = target.getFullYear() - dob.getFullYear();
+  let months = target.getMonth() - dob.getMonth();
+  let days = target.getDate() - dob.getDate();
+
+  if(days < 0) {
+    months--;
+    const prevMonth = new Date(target.getFullYear(), target.getMonth(), 0);
+    days += prevMonth.getDate();
+  }
+  if(months < 0) { years--; months += 12; }
+
+  // Total calculations
+  const msPerDay = 1000*60*60*24;
+  const totalDays = Math.floor((target - dob) / msPerDay);
+  const totalWeeks = Math.floor(totalDays / 7);
+  const totalMonths = years * 12 + months;
+  const totalHours = totalDays * 24;
+  const totalMinutes = totalHours * 60;
+  const totalSeconds = totalMinutes * 60;
+
+  // Show result
+  document.getElementById('age-result').style.display = 'block';
+
+  // Main stats cards
+  document.getElementById('age-main-stats').innerHTML = `
+    <div class="stat-card" style="grid-column:span 2;background:linear-gradient(135deg,var(--primary),var(--primary-dark));color:#fff;border:none">
+      <div class="stat-icon">🎂</div>
+      <div class="stat-num" style="color:#fff;font-size:2rem">${toBnNum(years)}</div>
+      <div class="stat-label" style="color:rgba(255,255,255,0.85);font-size:0.85rem">বছর ${toBnNum(months)} মাস ${toBnNum(days)} দিন</div>
+    </div>
+    <div class="stat-card"><div class="stat-icon">📅</div><div class="stat-num">${toBnNum(totalMonths)}</div><div class="stat-label">মোট মাস</div></div>
+    <div class="stat-card"><div class="stat-icon">🗓️</div><div class="stat-num">${toBnNum(totalWeeks)}</div><div class="stat-label">মোট সপ্তাহ</div></div>
+    <div class="stat-card"><div class="stat-icon">☀️</div><div class="stat-num">${formatBigNum(totalDays)}</div><div class="stat-label">মোট দিন</div></div>
+    <div class="stat-card"><div class="stat-icon">⏰</div><div class="stat-num">${formatBigNum(totalHours)}</div><div class="stat-label">মোট ঘণ্টা</div></div>
+  `;
+
+  // Detail section
+  const dobDayName = getBnDayName(dob);
+  const zodiac = getZodiac(dob);
+  const birthstone = getBirthstone(dob.getMonth());
+  document.getElementById('age-detail').innerHTML = `
+    <div class="list-item" style="margin-bottom:6px">
+      <span style="font-size:1.3rem">📆</span>
+      <div class="item-content"><div class="item-text">জন্ম বার</div><div class="item-sub">${dobDayName}</div></div>
+      <span class="item-badge">${dobDayName}</span>
+    </div>
+    <div class="list-item" style="margin-bottom:6px">
+      <span style="font-size:1.3rem">⭐</span>
+      <div class="item-content"><div class="item-text">রাশি</div><div class="item-sub">Zodiac Sign</div></div>
+      <span class="item-badge info">${zodiac}</span>
+    </div>
+    <div class="list-item" style="margin-bottom:6px">
+      <span style="font-size:1.3rem">💎</span>
+      <div class="item-content"><div class="item-text">জন্মপাথর</div><div class="item-sub">Birthstone</div></div>
+      <span class="item-badge success">${birthstone}</span>
+    </div>
+    <div class="list-item">
+      <span style="font-size:1.3rem">🔢</span>
+      <div class="item-content"><div class="item-text">মোট সেকেন্ড</div><div class="item-sub">বেঁচে আছেন</div></div>
+      <span style="font-size:0.75rem;font-weight:700;color:var(--primary)">${formatBigNum(totalSeconds)}</span>
+    </div>
+  `;
+
+  // Next birthday
+  const nextBday = getNextBirthday(dob, target);
+  const daysLeft = nextBday.daysLeft;
+  document.getElementById('age-birthday').innerHTML = `
+    <div style="text-align:center;padding:12px 0">
+      <div style="font-size:2.5rem;margin-bottom:8px">${daysLeft === 0 ? '🎉' : '🎂'}</div>
+      ${daysLeft === 0
+        ? `<div style="font-size:1.1rem;font-weight:700;color:var(--primary)">আজই জন্মদিন! 🎉🎊</div>
+           <div style="font-size:0.85rem;color:var(--text2);margin-top:4px">শুভ জন্মদিন!</div>`
+        : `<div style="font-size:0.9rem;color:var(--text2)">পরবর্তী জন্মদিন</div>
+           <div style="font-size:1.4rem;font-weight:700;color:var(--primary);margin:4px 0">${nextBday.dateStr}</div>
+           <div style="font-size:0.85rem;color:var(--text3)">${toBnNum(daysLeft)} দিন বাকি আছে</div>
+           <div style="margin-top:10px">
+             <div class="progress-bar"><div class="progress-fill" style="width:${Math.round((365-daysLeft)/365*100)}%"></div></div>
+             <div style="font-size:0.72rem;color:var(--text3);margin-top:4px">${toBnNum(Math.round((365-daysLeft)/365*100))}% বছর পেরিয়েছে</div>
+           </div>`
+      }
+    </div>
+  `;
+
+  // Fun facts
+  const heartbeats = totalMinutes * 72; // avg 72 bpm
+  const breaths = totalMinutes * 15; // avg 15 per minute
+  const sleepDays = Math.floor(totalDays * 0.33); // ~8hr/day
+  const meals = totalDays * 3;
+  document.getElementById('age-fun').innerHTML = `
+    <div class="list-item" style="margin-bottom:6px"><span style="font-size:1.3rem">❤️</span><div class="item-content"><div class="item-text">হৃদস্পন্দন</div><div class="item-sub">আনুমানিক</div></div><span style="font-size:0.78rem;font-weight:700;color:var(--danger)">${formatBigNum(heartbeats)}</span></div>
+    <div class="list-item" style="margin-bottom:6px"><span style="font-size:1.3rem">🌬️</span><div class="item-content"><div class="item-text">নিঃশ্বাস</div><div class="item-sub">আনুমানিক</div></div><span style="font-size:0.78rem;font-weight:700;color:var(--info)">${formatBigNum(breaths)}</span></div>
+    <div class="list-item" style="margin-bottom:6px"><span style="font-size:1.3rem">😴</span><div class="item-content"><div class="item-text">ঘুমের মধ্যে</div><div class="item-sub">প্রায় ১/৩ সময়</div></div><span class="item-badge">${toBnNum(sleepDays)} দিন</span></div>
+    <div class="list-item"><span style="font-size:1.3rem">🍽️</span><div class="item-content"><div class="item-text">আনুমানিক খাবার</div><div class="item-sub">৩ বেলা হিসাবে</div></div><span class="item-badge success">${formatBigNum(meals)} বার</span></div>
+  `;
+}
+
+function renderAgeFamilyList() {
+  const family = DB.get('family').filter(m => m.dob);
+  const el = document.getElementById('age-family-list');
+  if(!el) return;
+  if(!family.length) {
+    el.innerHTML = '<div class="empty-state"><div class="empty-icon">👨‍👩‍👧‍👦</div><div class="empty-text">পরিবার মডিউলে জন্মতারিখ যোগ করুন</div></div>';
+    return;
+  }
+  const AVATAR_COLORS = ['#6C63FF','#FF6B6B','#06D6A0','#FFD166','#4CC9F0','#A855F7','#F97316'];
+  el.innerHTML = family.map((m, i) => {
+    const dob = new Date(m.dob);
+    const now = new Date();
+    let age = now.getFullYear() - dob.getFullYear();
+    const mDiff = now.getMonth() - dob.getMonth();
+    if(mDiff < 0 || (mDiff === 0 && now.getDate() < dob.getDate())) age--;
+    const next = getNextBirthday(dob, now);
+    return `
+      <div class="family-member" style="cursor:pointer" onclick="loadFamilyAge('${m.dob}','${m.name}')">
+        <div class="avatar" style="background:${AVATAR_COLORS[i%AVATAR_COLORS.length]}">${m.name.charAt(0)}</div>
+        <div class="member-info" style="flex:1">
+          <div class="member-name">${esc(m.name)} <span style="color:var(--text3);font-size:0.75rem">(${esc(m.rel)})</span></div>
+          <div class="member-role">বয়স: ${toBnNum(age)} বছর • জন্ম: ${m.dob}</div>
+          <div class="member-role">${next.daysLeft === 0 ? '🎉 আজই জন্মদিন!' : '🎂 ' + toBnNum(next.daysLeft) + ' দিন পরে জন্মদিন'}</div>
+        </div>
+        <span style="font-size:0.72rem;color:var(--primary);font-weight:600">দেখুন →</span>
+      </div>
+    `;
+  }).join('');
+}
+
+function loadFamilyAge(dob, name) {
+  const dobEl = document.getElementById('age-dob');
+  if(dobEl) dobEl.value = dob;
+  const targetEl = document.getElementById('age-target');
+  if(targetEl && !targetEl.value) targetEl.value = today();
+  calcAge();
+  window.scrollTo(0, 0);
+  toast(name + ' এর বয়স হিসাব করা হচ্ছে 🎂');
+}
+
+// Helper: format large numbers with comma
+function formatBigNum(n) {
+  return toBnNum(Math.floor(n).toLocaleString('en'));
+}
+
+// Helper: Bengali day name
+function getBnDayName(date) {
+  return BN_DAYS[date.getDay()];
+}
+
+// Helper: Zodiac sign
+function getZodiac(dob) {
+  const m = dob.getMonth() + 1, d = dob.getDate();
+  if((m===3&&d>=21)||(m===4&&d<=19)) return '♈ মেষ (Aries)';
+  if((m===4&&d>=20)||(m===5&&d<=20)) return '♉ বৃষ (Taurus)';
+  if((m===5&&d>=21)||(m===6&&d<=20)) return '♊ মিথুন (Gemini)';
+  if((m===6&&d>=21)||(m===7&&d<=22)) return '♋ কর্কট (Cancer)';
+  if((m===7&&d>=23)||(m===8&&d<=22)) return '♌ সিংহ (Leo)';
+  if((m===8&&d>=23)||(m===9&&d<=22)) return '♍ কন্যা (Virgo)';
+  if((m===9&&d>=23)||(m===10&&d<=22)) return '♎ তুলা (Libra)';
+  if((m===10&&d>=23)||(m===11&&d<=21)) return '♏ বৃশ্চিক (Scorpio)';
+  if((m===11&&d>=22)||(m===12&&d<=21)) return '♐ ধনু (Sagittarius)';
+  if((m===12&&d>=22)||(m===1&&d<=19)) return '♑ মকর (Capricorn)';
+  if((m===1&&d>=20)||(m===2&&d<=18)) return '♒ কুম্ভ (Aquarius)';
+  return '♓ মীন (Pisces)';
+}
+
+// Helper: Birthstone
+function getBirthstone(monthIdx) {
+  const stones = ['গার্নেট 🔴','অ্যামেথিস্ট 💜','অ্যাকোয়ামেরিন 💙','ডায়মন্ড 💎','পান্না 💚','আলেকজান্ড্রাইট 🟢','রুবি ❤️','পেরিডট 💛','নীলকান্তমণি 💙','ওপাল 🔮','টোপাজ 🟡','নীলা 💙'];
+  return stones[monthIdx] || 'অজানা';
+}
+
+// Helper: Next birthday
+function getNextBirthday(dob, from) {
+  const thisYear = from.getFullYear();
+  let next = new Date(thisYear, dob.getMonth(), dob.getDate());
+  if(next < from) next = new Date(thisYear+1, dob.getMonth(), dob.getDate());
+  const msPerDay = 1000*60*60*24;
+  const daysLeft = Math.round((next - new Date(from.toDateString())) / msPerDay);
+  const months = BN_MONTHS[next.getMonth()];
+  const dateStr = toBnNum(next.getDate()) + ' ' + months + ' ' + toBnNum(next.getFullYear());
+  return { daysLeft, dateStr };
+}
+
+
+// ============================================================
+//  FIREBASE REST API (No SDK needed - works everywhere!)
+// ============================================================
+const FB_DB_URL = "https://daily-life-app-f59de-default-rtdb.asia-southeast1.firebasedatabase.app";
+const FB_API_KEY = "AIzaSyDB1LTKFp0u8YmTf1LoBS06jgeo-rceV1o";
+const FB_KEYS = ['office','routines','exercises','bazaar','family','school','rent',
+                 'bills','reminders','calevents','expenses','habits','notes','travels','chill'];
+
+let fbConnected = false;
+let fbUserId = null;
+let fbToken = null;
+let fbTokenExpiry = 0;
+let syncTimeout = null;
+
+function getDeviceId() {
+  let id = localStorage.getItem('jm_device_id');
+  if(!id) { id = 'dev_' + uid(); localStorage.setItem('jm_device_id', id); }
+  return id;
+}
+
+// ============================================================
+//  ANONYMOUS AUTH - Token নিয়ে Firebase এ ঢুকব
+// ============================================================
+function getAuthToken() {
+  // Token আছে এবং মেয়াদ আছে?
+  if(fbToken && Date.now() < fbTokenExpiry) {
+    return Promise.resolve(fbToken);
+  }
+  
+  // Saved token আছে?
+  const saved = localStorage.getItem('jm_fb_token');
+  const savedExpiry = parseInt(localStorage.getItem('jm_fb_token_expiry') || '0');
+  if(saved && Date.now() < savedExpiry) {
+    fbToken = saved;
+    fbTokenExpiry = savedExpiry;
+    fbUserId = localStorage.getItem('jm_fb_uid') || getDeviceId();
+    return Promise.resolve(fbToken);
+  }
+  
+  // নতুন anonymous token নিন
+  return fetch('https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=' + FB_API_KEY, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({returnSecureToken: true})
+  })
+  .then(r => {
+    if(!r.ok) throw new Error('Auth HTTP ' + r.status);
+    return r.json();
+  })
+  .then(data => {
+    if(data.idToken) {
+      fbToken = data.idToken;
+      fbUserId = data.localId;
+      fbTokenExpiry = Date.now() + (55 * 60 * 1000);
+      localStorage.setItem('jm_fb_token', fbToken);
+      localStorage.setItem('jm_fb_token_expiry', fbTokenExpiry);
+      localStorage.setItem('jm_fb_uid', fbUserId);
+      localStorage.setItem('jm_fb_user', fbUserId);
+      return fbToken;
+    } else {
+      throw new Error(data.error?.message || 'Auth failed');
+    }
+  })
+  .catch(err => {
+    // Auth fail হলে token ছাড়াই চেষ্টা করব
+    // Rules true থাকলে token ছাড়াও কাজ করে
+    console.warn('Auth failed, trying without token:', err.message);
+    fbToken = null;
+    fbUserId = getDeviceId();
+    localStorage.setItem('jm_fb_user', fbUserId);
+    return null; // null token = token ছাড়া request
+  });
+}
+
+// ============================================================
+//  FIREBASE REST API HELPERS (Auth Token সহ)
+// ============================================================
+function fbUrl(path, token) {
+  var url = FB_DB_URL + path + '.json';
+  if(token) url += '?auth=' + token;
+  return url;
+}
+
+function fbGet(path) {
+  return getAuthToken().then(function(token) {
+    return fetch(fbUrl(path, token))
+      .then(function(r) { if(!r.ok) throw new Error('HTTP ' + r.status); return r.json(); });
+  });
+}
+
+function fbSet(path, data) {
+  return getAuthToken().then(function(token) {
+    return fetch(fbUrl(path, token), {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    }).then(function(r) { if(!r.ok) throw new Error('HTTP ' + r.status); return r.json(); });
+  });
+}
+
+function fbPatch(path, data) {
+  return getAuthToken().then(function(token) {
+    return fetch(fbUrl(path, token), {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    }).then(function(r) { if(!r.ok) throw new Error('HTTP ' + r.status); return r.json(); });
+  });
+}
+
+// ============================================================
+//  INIT FIREBASE (REST API)
+// ============================================================
+function initFirebase() {
+  // Show app immediately with local data
+  hideFbLoading();
+  updateFbDot('syncing');
+
+  // Auth নিন (fail হলেও চলবে)
+  getAuthToken()
+    .then(function(token) {
+      // Auth success বা null (token ছাড়া)
+      // এখন DB test করি
+      return fetch(fbUrl('/ping', token), {
+        method: 'PUT',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({t: Date.now()})
+      });
+    })
+    .then(function(r) {
+      if(r.ok || r.status === 200) {
+        fbConnected = true;
+        updateFbDot('online');
+        showSyncBar('synced', '🟢 Firebase সংযুক্ত!');
+        hideSyncBarAfter(2000);
+        setTimeout(loadAllFromFirebase, 300);
+        setInterval(pollFirebase, 30000);
+      } else {
+        return r.text().then(function(t) { throw new Error('DB: ' + t); });
+      }
+    })
+    .catch(function(err) {
+      console.error('Firebase error:', err.message);
+      fbConnected = false;
+      updateFbDot('offline');
+      showSyncBar('offline', '📵 অফলাইন মোড');
+      hideSyncBarAfter(3000);
+      setTimeout(initFirebase, 20000);
+    });
+}
+
+// ============================================================
+//  LOAD ALL DATA FROM FIREBASE
+// ============================================================
+function loadAllFromFirebase() {
+  const path = '/users/' + fbUserId;
+  
+  const loadTimer = setTimeout(() => {
+    skipFbLoading();
+    fbConnected = false;
+    updateFbDot('offline');
+    showSyncBar('offline', 'ফায়ারবেস সর্যার সেডে নেই — স্থানীয় ডেটা ব্যবহার');
+    hideSyncBarAfter(3000);
+  }, 3000);
+
+  fbGet(path)
+    .then(data => {
+      clearTimeout(loadTimer);
+      fbConnected = true;
+      updateFbDot('online');
+
+      if(data) {
+        FB_KEYS.forEach(k => {
+          if(data[k]) {
+            let arr = data[k];
+            if(!Array.isArray(arr) && typeof arr === 'object') arr = Object.values(arr);
+            if(Array.isArray(arr)) localStorage.setItem('jm_' + k, JSON.stringify(arr));
+          }
+        });
+        showSyncBar('synced', '✅ Firebase থেকে ডেটা লোড হয়েছে');
+      } else {
+        pushAllToFirebase();
+        showSyncBar('synced', '☁️ স্থানীয় ডেটা Firebase এ আপলোড হয়েছে');
+      }
+
+      hideSyncBarAfter(2500);
+      hideFbLoading();
+      // Refresh current page with Firebase data
+      const activePg = document.querySelector('.page.active');
+      if(activePg) {
+        const pgId = activePg.id.replace('page-','');
+        renderPage(pgId);
+      }
+      // Polling setup in initFirebase
+    })
+    .catch(err => {
+      clearTimeout(loadTimer);
+      fbConnected = false;
+      updateFbDot('offline');
+      hideFbLoading();
+      showSyncBar('offline', '📵 Firebase সংযোগ নেই — স্থানীয় ডেটা ব্যবহার হচ্ছে');
+      hideSyncBarAfter(3000);
+      // Retry after 10 seconds
+      setTimeout(initFirebase, 10000);
+    });
+}
+
+// Poll Firebase for changes (every 30s)
+let lastPollTime = 0;
+function pollFirebase() {
+  if(!fbUserId) return;
+  const path = '/users/' + fbUserId + '/_updatedAt';
+  fbGet(path).then(ts => {
+    fbConnected = true;
+    updateFbDot('online');
+    if(ts && ts > lastPollTime) {
+      lastPollTime = ts;
+      // Another device updated - reload data
+      loadAllFromFirebase();
+      showSyncBar('synced', '🔄 অন্য ডিভাইস থেকে আপডেট হয়েছে');
+      hideSyncBarAfter(2500);
+    }
+  }).catch(() => {
+    fbConnected = false;
+    updateFbDot('offline');
+  });
+}
+
+// ============================================================
+//  PUSH ALL LOCAL DATA TO FIREBASE
+// ============================================================
+function pushAllToFirebase() {
+  if(!fbUserId) return;
+  updateFbDot('syncing');
+  const payload = { _lastWriter: getDeviceId(), _updatedAt: Date.now() };
+  FB_KEYS.forEach(k => { payload[k] = DB.get(k); });
+  fbSet('/users/' + fbUserId, payload)
+    .then(() => {
+      fbConnected = true;
+      updateFbDot('online');
+      showSyncBar('synced', '✅ Firebase এ সম্পূর্ণ ডেটা সংরক্ষিত');
+      hideSyncBarAfter(2000);
+    })
+    .catch(err => {
+      console.error('Push error:', err);
+      fbConnected = false;
+      updateFbDot('offline');
+    });
+}
+
+// ============================================================
+//  SYNC SINGLE KEY TO FIREBASE (debounced)
+// ============================================================
+function syncToFirebase(key) {
+  if(!fbUserId) return;
+  // If offline, try reconnecting first
+  if(!fbConnected) {
+    fetch(FB_DB_URL + '/.json?shallow=true')
+      .then(r => { if(r.ok) { fbConnected=true; updateFbDot('online'); syncToFirebase(key); } })
+      .catch(() => {});
+    return;
+  }
+  clearTimeout(syncTimeout);
+  updateFbDot('syncing');
+  showSyncBar('syncing', '☁️ Firebase এ সংরক্ষণ হচ্ছে...');
+
+  syncTimeout = setTimeout(() => {
+    const patch = {};
+    patch[key] = DB.get(key);
+    patch['_lastWriter'] = getDeviceId();
+    patch['_updatedAt'] = Date.now();
+
+    fbPatch('/users/' + fbUserId, patch)
+      .then(() => {
+        fbConnected = true;
+        updateFbDot('online');
+        showSyncBar('synced', '✅ Firebase এ সংরক্ষিত হয়েছে');
+        hideSyncBarAfter(2000);
+      })
+      .catch(err => {
+        fbConnected = false;
+        updateFbDot('offline');
+        showSyncBar('error', '❌ সংরক্ষণ ব্যর্থ');
+        hideSyncBarAfter(3000);
+      });
+  }, 1000);
+}
+
+// ============================================================
+//  OVERRIDE DB.set TO AUTO-SYNC TO FIREBASE
+// ============================================================
+const _originalSet = DB.set.bind(DB);
+DB.set = function(key, val) {
+  _originalSet(key, val);
+  syncToFirebase(key);
+};
+
+// ============================================================
+//  MANUAL SYNC BUTTON
+// ============================================================
+function manualSync() {
+  if(!fbConnected) {
+    toast('অফলাইন — ইন্টারনেট সংযোগ পরীক্ষা করুন', 'error');
+    // Retry connection
+    initFirebase();
+    return;
+  }
+  showSyncBar('syncing', '☁️ সম্পূর্ণ ডেটা Firebase এ পাঠানো হচ্ছে...');
+  pushAllToFirebase();
+  setTimeout(() => {
+    showSyncBar('synced', '✅ সম্পূর্ণ ডেটা সংরক্ষিত হয়েছে');
+    hideSyncBarAfter(3000);
+  }, 2000);
+  toast('Firebase সিঙ্ক শুরু হয়েছে ☁️');
+}
+
+// ============================================================
+//  MULTI-DEVICE: Show user ID
+// ============================================================
+function showUserId() {
+  const id = fbUserId || getDeviceId();
+  alert('User ID: ' + id + '\n\nঅন্য ডিভাইসে একই ডেটা দেখতে এই ID ব্যবহার করুন।');
+}
+
+
+// ============================================================
+//  PWA INSTALL PROMPT
+// ============================================================
+var deferredPrompt = null;
+var PWA_ICON = "data:image/jpeg;base64,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";
+
+window.addEventListener('beforeinstallprompt', function(e) {
+  e.preventDefault();
+  deferredPrompt = e;
+  setTimeout(showInstallPrompt, 3000);
+});
+
+function showInstallPrompt() {
+  if(!deferredPrompt) return;
+  if(document.getElementById('pwa-install-bar')) return;
+
+  var bar = document.createElement('div');
+  bar.id = 'pwa-install-bar';
+  bar.style.cssText = 'position:fixed;bottom:calc(var(--nav-h) + 10px);left:12px;right:12px;background:linear-gradient(135deg,var(--primary),var(--primary-dark));color:#fff;border-radius:14px;padding:12px 16px;display:flex;align-items:center;gap:10px;box-shadow:0 6px 24px rgba(108,99,255,0.4);z-index:88;animation:fadeIn 0.4s ease;font-family:inherit;';
+
+  var imgEl = document.createElement('img');
+  imgEl.src = PWA_ICON;
+  imgEl.style.cssText = 'width:36px;height:36px;border-radius:50%;border:2px solid rgba(255,255,255,0.5);flex-shrink:0;';
+
+  var infoEl = document.createElement('div');
+  infoEl.style.flex = '1';
+  infoEl.innerHTML = '<div style="font-size:0.85rem;font-weight:700">হোম স্ক্রিনে যোগ করুন</div><div style="font-size:0.72rem;opacity:0.85">অ্যাপের মতো ব্যবহার করুন</div>';
+
+  var installBtn = document.createElement('button');
+  installBtn.style.cssText = 'background:rgba(255,255,255,0.2);border:none;border-radius:10px;color:#fff;padding:8px 14px;font-size:0.82rem;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;';
+  installBtn.textContent = 'যোগ করুন';
+  installBtn.onclick = installPWA;
+
+  var closeBtn = document.createElement('button');
+  closeBtn.style.cssText = 'background:none;border:none;color:rgba(255,255,255,0.7);font-size:1.2rem;cursor:pointer;padding:4px;line-height:1;flex-shrink:0;';
+  closeBtn.textContent = '×';
+  closeBtn.onclick = dismissInstall;
+
+  bar.appendChild(imgEl);
+  bar.appendChild(infoEl);
+  bar.appendChild(installBtn);
+  bar.appendChild(closeBtn);
+  document.body.appendChild(bar);
+}
+
+function installPWA() {
+  if(!deferredPrompt) {
+    toast('ব্রাউজার মেনু → "Add to Home Screen" চাপুন', 'success');
+    return;
+  }
+  deferredPrompt.prompt();
+  deferredPrompt.userChoice.then(function(choice) {
+    if(choice.outcome === 'accepted') {
+      toast('অ্যাপ হোম স্ক্রিনে যোগ হয়েছে!', 'success');
+    }
+    deferredPrompt = null;
+    dismissInstall();
+  });
+}
+
+function dismissInstall() {
+  var bar = document.getElementById('pwa-install-bar');
+  if(bar) bar.remove();
+}
+
+window.addEventListener('appinstalled', function() {
+  toast('অ্যাপ সফলভাবে ইনস্টল হয়েছে!', 'success');
+  dismissInstall();
+})
+
+</script>
+
+<!-- PIN SCREEN -->
+<div id="pin-screen" style="display:none">
+  <div class="pin-logo">🔐</div>
+  <h2 style="color:var(--text)">Parves' Daily Life</h2>
+  <p style="color:var(--text3);text-align:center;font-size:0.82rem">PIN দিয়ে প্রবেশ করুন</p>
+  <div class="pin-dots">
+    <div class="pin-dot" id="pd0"></div>
+    <div class="pin-dot" id="pd1"></div>
+    <div class="pin-dot" id="pd2"></div>
+    <div class="pin-dot" id="pd3"></div>
+  </div>
+  <div class="pin-error" id="pin-error"></div>
+  <div class="pin-pad">
+    <button class="pin-key" onclick="pinInput('১')">১</button>
+    <button class="pin-key" onclick="pinInput('২')">২</button>
+    <button class="pin-key" onclick="pinInput('৩')">৩</button>
+    <button class="pin-key" onclick="pinInput('৪')">৪</button>
+    <button class="pin-key" onclick="pinInput('৫')">৫</button>
+    <button class="pin-key" onclick="pinInput('৬')">৬</button>
+    <button class="pin-key" onclick="pinInput('৭')">৭</button>
+    <button class="pin-key" onclick="pinInput('৮')">৮</button>
+    <button class="pin-key" onclick="pinInput('৯')">৯</button>
+    <button class="pin-key del" onclick="pinClear()">মুছুন</button>
+    <button class="pin-key" onclick="pinInput('০')">০</button>
+    <button class="pin-key del" onclick="pinDel()">⌫</button>
+  </div>
+  <button class="add-btn" style="margin-top:8px" onclick="skipPin()">PIN ছাড়া প্রবেশ</button>
+</div>
+
+<!-- THEME MODAL -->
+<div class="modal-overlay" id="themeModal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">🎨 থিম কাস্টমাইজ <button class="modal-close" onclick="closeModal('themeModal')">✕</button></div>
+    <div class="theme-grid" id="theme-grid">
+      <div class="theme-swatch active" data-name="বেগুনি" data-primary="#6C63FF" data-secondary="#FF6B6B" style="background:linear-gradient(135deg,#6C63FF,#FF6B6B)" onclick="applyTheme(this)"></div>
+      <div class="theme-swatch" data-name="নীল" data-primary="#2196F3" data-secondary="#00BCD4" style="background:linear-gradient(135deg,#2196F3,#00BCD4)" onclick="applyTheme(this)"></div>
+      <div class="theme-swatch" data-name="সবুজ" data-primary="#06D6A0" data-secondary="#FFD166" style="background:linear-gradient(135deg,#06D6A0,#00897B)" onclick="applyTheme(this)"></div>
+      <div class="theme-swatch" data-name="কমলা" data-primary="#F97316" data-secondary="#FBBF24" style="background:linear-gradient(135deg,#F97316,#FBBF24)" onclick="applyTheme(this)"></div>
+      <div class="theme-swatch" data-name="গোলাপি" data-primary="#EC4899" data-secondary="#F43F5E" style="background:linear-gradient(135deg,#EC4899,#F43F5E)" onclick="applyTheme(this)"></div>
+      <div class="theme-swatch" data-name="লাল" data-primary="#EF233C" data-secondary="#FF6B6B" style="background:linear-gradient(135deg,#EF233C,#FF6B6B)" onclick="applyTheme(this)"></div>
+      <div class="theme-swatch" data-name="বাদামি" data-primary="#92400E" data-secondary="#D97706" style="background:linear-gradient(135deg,#92400E,#D97706)" onclick="applyTheme(this)"></div>
+      <div class="theme-swatch" data-name="নেভি" data-primary="#1E3A5F" data-secondary="#4CC9F0" style="background:linear-gradient(135deg,#1E3A5F,#4CC9F0)" onclick="applyTheme(this)"></div>
+    </div>
+    <div class="custom-color-row">
+      <label>কাস্টম প্রাইমারি রঙ</label>
+      <input type="color" id="custom-primary" value="#6C63FF" onchange="applyCustomColor()">
+    </div>
+    <div class="custom-color-row">
+      <label>কাস্টম সেকেন্ডারি রঙ</label>
+      <input type="color" id="custom-secondary" value="#FF6B6B" onchange="applyCustomColor()">
+    </div>
+    <button class="submit-btn" onclick="closeModal('themeModal')">✅ প্রয়োগ করুন</button>
+  </div>
+</div>
+
+<!-- IMPORT MODAL -->
+<div class="modal-overlay" id="importModal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">📦 ডেটা আমদানি <button class="modal-close" onclick="closeModal('importModal')">✕</button></div>
+    <div class="import-zone" onclick="document.getElementById('import-file-input').click()">
+      <div class="import-icon">📂</div>
+      <p>JSON ফাইল ক্লিক করে বেছে নিন<br><small>আগে এক্সপোর্ট করা ফাইল আমদানি করুন</small></p>
+      <input type="file" id="import-file-input" accept=".json" onchange="handleImport(this)">
+    </div>
+    <div id="import-preview" style="font-size:0.82rem;color:var(--text2);margin-bottom:12px"></div>
+    <div style="background:rgba(239,35,60,0.08);border:1px solid rgba(239,35,60,0.2);border-radius:10px;padding:10px;font-size:0.78rem;color:var(--danger);margin-bottom:14px">
+      ⚠️ সতর্কতা: আমদানি করলে বর্তমান ডেটা প্রতিস্থাপিত হবে।
+    </div>
+    <button class="submit-btn" id="import-confirm-btn" style="display:none" onclick="confirmImport()">📥 আমদানি নিশ্চিত করুন</button>
+  </div>
+</div>
+
+<!-- PHOTO CATEGORY MODAL -->
+<div class="modal-overlay" id="photoCatModal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">📸 ছবির ক্যাটেগরি <button class="modal-close" onclick="closeModal('photoCatModal')">✕</button></div>
+    <p style="font-size:0.85rem;color:var(--text2);margin-bottom:14px">আপলোড করা ছবিগুলোর ক্যাটেগরি বেছে নিন</p>
+    <div class="form-group">
+      <label class="form-label">ক্যাটেগরি</label>
+      <select id="photo-cat-select" class="form-control">
+        <option>পরিবার</option><option>ভ্রমণ</option><option>অফিস</option><option>সব</option>
+      </select>
+    </div>
+    <button class="submit-btn" onclick="confirmPhotoUpload()">💾 সংরক্ষণ করুন</button>
+  </div>
+</div>
+
+</body>
 </html>
