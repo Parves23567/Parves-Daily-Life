@@ -3302,11 +3302,14 @@ function getNextBirthday(dob, from) {
 //  FIREBASE REST API (No SDK needed - works everywhere!)
 // ============================================================
 const FB_DB_URL = "https://daily-life-app-f59de-default-rtdb.asia-southeast1.firebasedatabase.app";
+const FB_API_KEY = "AIzaSyDB1LTKFp0u8YmTf1LoBS06jgeo-rceV1o";
 const FB_KEYS = ['office','routines','exercises','bazaar','family','school','rent',
                  'bills','reminders','calevents','expenses','habits','notes','travels','chill'];
 
 let fbConnected = false;
 let fbUserId = null;
+let fbToken = null;
+let fbTokenExpiry = 0;
 let syncTimeout = null;
 
 function getDeviceId() {
@@ -3316,57 +3319,107 @@ function getDeviceId() {
 }
 
 // ============================================================
-//  FIREBASE REST API HELPERS
+//  ANONYMOUS AUTH - Token নিয়ে Firebase এ ঢুকব
+// ============================================================
+function getAuthToken() {
+  // Token আছে এবং মেয়াদ আছে?
+  if(fbToken && Date.now() < fbTokenExpiry) {
+    return Promise.resolve(fbToken);
+  }
+  
+  // Saved token আছে?
+  const saved = localStorage.getItem('jm_fb_token');
+  const savedExpiry = parseInt(localStorage.getItem('jm_fb_token_expiry') || '0');
+  if(saved && Date.now() < savedExpiry) {
+    fbToken = saved;
+    fbTokenExpiry = savedExpiry;
+    fbUserId = localStorage.getItem('jm_fb_uid') || getDeviceId();
+    return Promise.resolve(fbToken);
+  }
+  
+  // নতুন anonymous token নিন
+  return fetch('https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=' + FB_API_KEY, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({returnSecureToken: true})
+  })
+  .then(r => r.json())
+  .then(data => {
+    if(data.idToken) {
+      fbToken = data.idToken;
+      fbUserId = data.localId;
+      // Token 1 ঘণ্টা valid থাকে
+      fbTokenExpiry = Date.now() + (55 * 60 * 1000);
+      localStorage.setItem('jm_fb_token', fbToken);
+      localStorage.setItem('jm_fb_token_expiry', fbTokenExpiry);
+      localStorage.setItem('jm_fb_uid', fbUserId);
+      localStorage.setItem('jm_fb_user', fbUserId);
+      console.log('Firebase anonymous auth success, UID:', fbUserId);
+      return fbToken;
+    } else {
+      throw new Error(data.error?.message || 'Auth failed');
+    }
+  });
+}
+
+// ============================================================
+//  FIREBASE REST API HELPERS (Auth Token সহ)
 // ============================================================
 function fbGet(path) {
-  return fetch(FB_DB_URL + path + '.json')
-    .then(r => { if(!r.ok) throw new Error('HTTP ' + r.status); return r.json(); });
+  return getAuthToken().then(token => {
+    return fetch(FB_DB_URL + path + '.json?auth=' + token)
+      .then(r => { if(!r.ok) throw new Error('HTTP ' + r.status); return r.json(); });
+  });
 }
 
 function fbSet(path, data) {
-  return fetch(FB_DB_URL + path + '.json', {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data)
-  }).then(r => { if(!r.ok) throw new Error('HTTP ' + r.status); return r.json(); });
+  return getAuthToken().then(token => {
+    return fetch(FB_DB_URL + path + '.json?auth=' + token, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    }).then(r => { if(!r.ok) throw new Error('HTTP ' + r.status); return r.json(); });
+  });
 }
 
 function fbPatch(path, data) {
-  return fetch(FB_DB_URL + path + '.json', {
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data)
-  }).then(r => { if(!r.ok) throw new Error('HTTP ' + r.status); return r.json(); });
+  return getAuthToken().then(token => {
+    return fetch(FB_DB_URL + path + '.json?auth=' + token, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    }).then(r => { if(!r.ok) throw new Error('HTTP ' + r.status); return r.json(); });
+  });
 }
 
 // ============================================================
 //  INIT FIREBASE (REST API)
 // ============================================================
 function initFirebase() {
-  fbUserId = localStorage.getItem('jm_fb_user') || getDeviceId();
-  localStorage.setItem('jm_fb_user', fbUserId);
-
   // Show app immediately with local data
   hideFbLoading();
-
-  // Ping Firebase first to check connection
   updateFbDot('syncing');
-  fetch(FB_DB_URL + '/.json?shallow=true')
-    .then(r => {
-      if(r.ok) {
-        fbConnected = true;
-        updateFbDot('online');
-        // Load data in background
-        setTimeout(loadAllFromFirebase, 300);
-      } else {
-        throw new Error('Firebase ping failed');
-      }
+
+  // Anonymous auth নিন তারপর Firebase load করুন
+  getAuthToken()
+    .then(token => {
+      fbConnected = true;
+      updateFbDot('online');
+      showSyncBar('synced', '🟢 Firebase সংযুক্ত হয়েছে');
+      hideSyncBarAfter(2000);
+      // Load data from Firebase
+      setTimeout(loadAllFromFirebase, 300);
+      // Poll every 30 seconds
+      setInterval(pollFirebase, 30000);
     })
-    .catch(() => {
+    .catch(err => {
+      console.error('Firebase auth error:', err);
       fbConnected = false;
       updateFbDot('offline');
       showSyncBar('offline', '📵 অফলাইন — স্থানীয় ডেটা ব্যবহার হচ্ছে');
       hideSyncBarAfter(3000);
+      // Retry after 20 seconds
+      setTimeout(initFirebase, 20000);
     });
 }
 
@@ -3412,8 +3465,7 @@ function loadAllFromFirebase() {
         const pgId = activePg.id.replace('page-','');
         renderPage(pgId);
       }
-      // Poll for updates every 30 seconds
-      setInterval(pollFirebase, 30000);
+      // Polling setup in initFirebase
     })
     .catch(err => {
       clearTimeout(loadTimer);
