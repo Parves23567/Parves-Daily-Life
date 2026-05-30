@@ -3343,52 +3343,68 @@ function getAuthToken() {
     headers: {'Content-Type': 'application/json'},
     body: JSON.stringify({returnSecureToken: true})
   })
-  .then(r => r.json())
+  .then(r => {
+    if(!r.ok) throw new Error('Auth HTTP ' + r.status);
+    return r.json();
+  })
   .then(data => {
     if(data.idToken) {
       fbToken = data.idToken;
       fbUserId = data.localId;
-      // Token 1 ঘণ্টা valid থাকে
       fbTokenExpiry = Date.now() + (55 * 60 * 1000);
       localStorage.setItem('jm_fb_token', fbToken);
       localStorage.setItem('jm_fb_token_expiry', fbTokenExpiry);
       localStorage.setItem('jm_fb_uid', fbUserId);
       localStorage.setItem('jm_fb_user', fbUserId);
-      console.log('Firebase anonymous auth success, UID:', fbUserId);
       return fbToken;
     } else {
       throw new Error(data.error?.message || 'Auth failed');
     }
+  })
+  .catch(err => {
+    // Auth fail হলে token ছাড়াই চেষ্টা করব
+    // Rules true থাকলে token ছাড়াও কাজ করে
+    console.warn('Auth failed, trying without token:', err.message);
+    fbToken = null;
+    fbUserId = getDeviceId();
+    localStorage.setItem('jm_fb_user', fbUserId);
+    return null; // null token = token ছাড়া request
   });
 }
 
 // ============================================================
 //  FIREBASE REST API HELPERS (Auth Token সহ)
 // ============================================================
+function fbUrl(path, token) {
+  var url = FB_DB_URL + path + '.json';
+  if(token) url += '?auth=' + token;
+  return url;
+}
+
 function fbGet(path) {
-  return getAuthToken().then(token => {
-    return fetch(FB_DB_URL + path + '.json?auth=' + token)
-      .then(r => { if(!r.ok) throw new Error('HTTP ' + r.status); return r.json(); });
+  return getAuthToken().then(function(token) {
+    return fetch(fbUrl(path, token))
+      .then(function(r) { if(!r.ok) throw new Error('HTTP ' + r.status); return r.json(); });
   });
 }
 
 function fbSet(path, data) {
-  return getAuthToken().then(token => {
-    return fetch(FB_DB_URL + path + '.json?auth=' + token, {
+  return getAuthToken().then(function(token) {
+    return fetch(fbUrl(path, token), {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data)
-    }).then(r => { if(!r.ok) throw new Error('HTTP ' + r.status); return r.json(); });
+    }).then(function(r) { if(!r.ok) throw new Error('HTTP ' + r.status); return r.json(); });
   });
 }
 
 function fbPatch(path, data) {
-  return getAuthToken().then(token => {
-    return fetch(FB_DB_URL + path + '.json?auth=' + token, {
+  return getAuthToken().then(function(token) {
+    return fetch(fbUrl(path, token), {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data)
-    }).then(r => { if(!r.ok) throw new Error('HTTP ' + r.status); return r.json(); });
+    }).then(function(r) { if(!r.ok) throw new Error('HTTP ' + r.status); return r.json(); });
   });
 }
 
@@ -3400,25 +3416,35 @@ function initFirebase() {
   hideFbLoading();
   updateFbDot('syncing');
 
-  // Anonymous auth নিন তারপর Firebase load করুন
+  // Auth নিন (fail হলেও চলবে)
   getAuthToken()
-    .then(token => {
-      fbConnected = true;
-      updateFbDot('online');
-      showSyncBar('synced', '🟢 Firebase সংযুক্ত হয়েছে');
-      hideSyncBarAfter(2000);
-      // Load data from Firebase
-      setTimeout(loadAllFromFirebase, 300);
-      // Poll every 30 seconds
-      setInterval(pollFirebase, 30000);
+    .then(function(token) {
+      // Auth success বা null (token ছাড়া)
+      // এখন DB test করি
+      return fetch(fbUrl('/ping', token), {
+        method: 'PUT',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({t: Date.now()})
+      });
     })
-    .catch(err => {
-      console.error('Firebase auth error:', err);
+    .then(function(r) {
+      if(r.ok || r.status === 200) {
+        fbConnected = true;
+        updateFbDot('online');
+        showSyncBar('synced', '🟢 Firebase সংযুক্ত!');
+        hideSyncBarAfter(2000);
+        setTimeout(loadAllFromFirebase, 300);
+        setInterval(pollFirebase, 30000);
+      } else {
+        return r.text().then(function(t) { throw new Error('DB: ' + t); });
+      }
+    })
+    .catch(function(err) {
+      console.error('Firebase error:', err.message);
       fbConnected = false;
       updateFbDot('offline');
-      showSyncBar('offline', '📵 অফলাইন — স্থানীয় ডেটা ব্যবহার হচ্ছে');
+      showSyncBar('offline', '📵 অফলাইন মোড');
       hideSyncBarAfter(3000);
-      // Retry after 20 seconds
       setTimeout(initFirebase, 20000);
     });
 }
