@@ -605,6 +605,7 @@ select.form-control { cursor:pointer; }
   background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
   border-radius: var(--radius); padding: 20px; margin-bottom: 12px;
   position: relative; overflow: hidden; color: #fff;
+  border-left: 4px solid #FFD166;
 }
 .quote-card::before {
   content: '\201C'; position: absolute; top: -10px; left: 10px;
@@ -880,8 +881,9 @@ canvas { max-height: 240px; }
     <!-- MOTIVATIONAL QUOTE -->
     <div class="quote-card" id="quote-card">
       <button class="quote-refresh" onclick="newQuote()" title="নতুন উক্তি">🔄</button>
-      <div class="quote-text" id="quote-text">প্রতিটি দিন একটি নতুন সুযোগ। আজকেই শুরু করুন।</div>
-      <div class="quote-author" id="quote-author">— অজানা</div>
+      <div id="quote-type-badge" style="font-size:0.72rem;font-weight:700;opacity:0.8;margin-bottom:6px;letter-spacing:0.5px"></div>
+      <div class="quote-text" id="quote-text">নিশ্চয়ই কষ্টের সাথে স্বস্তি আছে।</div>
+      <div class="quote-author" id="quote-author">📖 সূরা আশ-শারহ</div>
     </div>
 
     <div class="stats-grid" id="stats-grid"></div>
@@ -2765,31 +2767,65 @@ document.addEventListener('DOMContentLoaded', () => {
 //  MOTIVATIONAL QUOTES
 // ============================================================
 const QUOTES = [
-  {text:"প্রতিটি দিন একটি নতুন সুযোগ। আজকেই শুরু করুন।", author:"অজানা"},
-  {text:"স্বপ্ন দেখো, পরিশ্রম করো, সফল হও।", author:"অজানা"},
-  {text:"সময় কখনো ফিরে আসে না, তাই প্রতিটি মুহূর্তকে কাজে লাগাও।", author:"বেঞ্জামিন ফ্র্যাংকলিন"},
-  {text:"জীবনে সফল হতে হলে ব্যর্থতাকে ভয় পেলে চলবে না।", author:"অজানা"},
-  {text:"ছোট ছোট পদক্ষেপই একদিন বড় লক্ষ্যে পৌঁছে দেয়।", author:"লাও জু"},
-  {text:"আজকের কাজ আজকেই করো, কালকের উপর ছেড়ে দিও না।", author:"বেঞ্জামিন ফ্র্যাংকলিন"},
-  {text:"যে মন থেকে বিশ্বাস করে সে সফল হয়।", author:"মার্টিন লুথার কিং"},
-  {text:"পরিশ্রমই সাফল্যের চাবিকাঠি।", author:"অজানা"},
-  {text:"নিজেকে বিশ্বাস করো, তাহলে সবকিছু সম্ভব।", author:"অজানা"},
-  {text:"শুরু করাটাই সবচেয়ে কঠিন কাজ, একবার শুরু করলে বাকিটা সহজ।", author:"অজানা"},
-  {text:"জ্ঞান অর্জনে কোনো বয়স নেই, প্রতিদিন কিছু না কিছু শেখো।", author:"অজানা"},
-  {text:"সুখী জীবনের চাবি হলো কৃতজ্ঞতা।", author:"অজানা"},
-  {text:"একটু একটু করে এগিয়ে চলাই সাফল্যের পথ।", author:"অজানা"},
-  {text:"আজকের কষ্ট আগামীর সুখের বীজ।", author:"অজানা"},
-  {text:"ভালো অভ্যাস জীবনকে সুন্দর করে তোলে।", author:"অ্যারিস্টটল"},
+  /* ===== কুরআনের আয়াত ===== */
+  {text:"নিশ্চয়ই আল্লাহ কোনো জাতির অবস্থা পরিবর্তন করেন না, যতক্ষণ না তারা নিজেরা নিজেদের পরিবর্তন করে।", author:"📖 সূরা আর-রাদ, আয়াত ১১", type:"quran"},
+  {text:"আর তোমরা ধৈর্য ধরো এবং সালাতের মাধ্যমে সাহায্য প্রার্থনা করো। নিশ্চয়ই আল্লাহ ধৈর্যশীলদের সাথে আছেন।", author:"📖 সূরা আল-বাকারা, আয়াত ১৫৩", type:"quran"},
+  {text:"অতএব, তোমরা আমাকে স্মরণ করো, আমিও তোমাদের স্মরণ করবো। আর আমার প্রতি কৃতজ্ঞ হও, অকৃতজ্ঞ হয়ো না।", author:"📖 সূরা আল-বাকারা, আয়াত ১৫২", type:"quran"},
+  {text:"নিশ্চয়ই কষ্টের সাথে স্বস্তি আছে। নিশ্চয়ই কষ্টের সাথে স্বস্তি আছে।", author:"📖 সূরা আশ-শারহ, আয়াত ৫-৬", type:"quran"},
+  {text:"তোমরা হতাশ হয়ো না এবং দুঃখিত হয়ো না। তোমরাই বিজয়ী হবে যদি তোমরা মুমিন হও।", author:"📖 সূরা আল-ইমরান, আয়াত ১৩৯", type:"quran"},
+  {text:"আল্লাহর রহমত থেকে নিরাশ হয়ো না। নিশ্চয়ই আল্লাহ সব গুনাহ মাফ করে দেন।", author:"📖 সূরা আয-যুমার, আয়াত ৫৩", type:"quran"},
+  {text:"তোমরা যেখানেই থাকো না কেন, আল্লাহ তোমাদের সাথে আছেন।", author:"📖 সূরা আল-হাদিদ, আয়াত ৪", type:"quran"},
+  {text:"যে আল্লাহর উপর ভরসা করে, আল্লাহ তার জন্য যথেষ্ট।", author:"📖 সূরা আত-তালাক, আয়াত ৩", type:"quran"},
+  {text:"নিশ্চয়ই নামাজ অশ্লীল ও মন্দ কাজ থেকে বিরত রাখে।", author:"📖 সূরা আল-আনকাবুত, আয়াত ৪৫", type:"quran"},
+  {text:"আর তোমার পালনকর্তা বলেছেন, আমাকে ডাকো, আমি সাড়া দেবো।", author:"📖 সূরা গাফির, আয়াত ৬০", type:"quran"},
+  {text:"সত্যিই মানুষ ক্ষতির মধ্যে আছে, তবে তারা নয় যারা ঈমান আনে ও সৎকাজ করে।", author:"📖 সূরা আল-আসর, আয়াত ২-৩", type:"quran"},
+  {text:"আল্লাহ কাউকে তার সাধ্যের অতিরিক্ত বোঝা দেন না।", author:"📖 সূরা আল-বাকারা, আয়াত ২৮৬", type:"quran"},
+
+  /* ===== হাদিস ===== */
+  {text:"তোমাদের মধ্যে সেই ব্যক্তি সর্বোত্তম যে তার পরিবারের কাছে সর্বোত্তম।", author:"☪️ হাদিস — তিরমিযী", type:"hadith"},
+  {text:"জ্ঞান অর্জন করা প্রত্যেক মুসলিম নর-নারীর উপর ফরয।", author:"☪️ হাদিস — ইবনে মাজাহ", type:"hadith"},
+  {text:"মুসলমান সে ব্যক্তি, যার হাত ও মুখ থেকে অন্য মুসলমান নিরাপদ।", author:"☪️ হাদিস — বুখারী", type:"hadith"},
+  {text:"কেউ যদি আল্লাহর সন্তুষ্টির জন্য বিনয়ী হয়, আল্লাহ তার মর্যাদা বৃদ্ধি করেন।", author:"☪️ হাদিস — মুসলিম", type:"hadith"},
+  {text:"পরিষ্কার-পরিচ্ছন্নতা ঈমানের অর্ধেক।", author:"☪️ হাদিস — মুসলিম", type:"hadith"},
+  {text:"সবচেয়ে ভালো কাজ হলো যা নিয়মিতভাবে করা হয়, যদিও তা অল্প হোক।", author:"☪️ হাদিস — বুখারী ও মুসলিম", type:"hadith"},
+  {text:"দয়া করো যারা পৃথিবীতে আছে, তাহলে যিনি আকাশে আছেন তিনি তোমার উপর দয়া করবেন।", author:"☪️ হাদিস — তিরমিযী", type:"hadith"},
+  {text:"হাসিমাখা মুখে তোমার ভাইয়ের সাথে সাক্ষাৎ করা সদকা।", author:"☪️ হাদিস — তিরমিযী", type:"hadith"},
+  {text:"সত্য কথা বলো, যদিও তা তিক্ত হয়।", author:"☪️ হাদিস — ইবনে হিব্বান", type:"hadith"},
+  {text:"প্রকৃত ধনী সে নয় যার কাছে অনেক সম্পদ আছে, বরং ধনী সে যার অন্তর সমৃদ্ধ।", author:"☪️ হাদিস — বুখারী ও মুসলিম", type:"hadith"},
+  {text:"তোমার প্রতিবেশীকে কষ্ট দেওয়া থেকে বিরত থাকাই সদকা।", author:"☪️ হাদিস — বুখারী", type:"hadith"},
+  {text:"যে ব্যক্তি আল্লাহর পথে একটি পদক্ষেপ নেয়, আল্লাহ তার দিকে দশ পদক্ষেপ এগিয়ে আসেন।", author:"☪️ হাদিস — মুসলিম", type:"hadith"},
+  {text:"মানুষের সাথে সদাচরণই উত্তম চরিত্র।", author:"☪️ হাদিস — তিরমিযী", type:"hadith"},
+  {text:"শ্রেষ্ঠ জিহাদ হলো নিজের নফসের বিরুদ্ধে লড়াই করা।", author:"☪️ হাদিস — বায়হাকী", type:"hadith"},
+  {text:"যে ব্যক্তি সূর্যোদয় ও সূর্যাস্তের নামায পড়ে, সে জান্নাতে যাবে।", author:"☪️ হাদিস — বুখারী ও মুসলিম", type:"hadith"},
 ];
 let quoteIdx = Math.floor(Math.random() * QUOTES.length);
+function updateQuoteDisplay(q) {
+  const tEl = document.getElementById('quote-text');
+  const aEl = document.getElementById('quote-author');
+  const bEl = document.getElementById('quote-type-badge');
+  if(bEl) {
+    if(q.type === 'quran') bEl.textContent = '📖 কুরআনের আয়াত';
+    else if(q.type === 'hadith') bEl.textContent = '☪️ হাদিস';
+    else bEl.textContent = '';
+  }
+  if(tEl) tEl.textContent = q.text;
+  if(aEl) aEl.textContent = q.author;
+}
+
 function newQuote() {
   quoteIdx = (quoteIdx + 1) % QUOTES.length;
   const q = QUOTES[quoteIdx];
   const tEl = document.getElementById('quote-text');
-  const aEl = document.getElementById('quote-author');
-  if(tEl) { tEl.style.opacity='0'; setTimeout(()=>{tEl.textContent=q.text;tEl.style.opacity='1';},200); }
-  if(aEl) aEl.textContent = '— ' + q.author;
+  if(tEl) {
+    tEl.style.opacity = '0';
+    tEl.style.transition = 'opacity 0.3s';
+    setTimeout(() => { updateQuoteDisplay(q); tEl.style.opacity='1'; }, 300);
+  } else {
+    updateQuoteDisplay(q);
+  }
+  localStorage.setItem('jm_quote_idx', quoteIdx);
 }
+
 function showDailyQuote() {
   const saved = localStorage.getItem('jm_quote_date');
   const today_s = new Date().toDateString();
@@ -2801,10 +2837,7 @@ function showDailyQuote() {
     quoteIdx = parseInt(localStorage.getItem('jm_quote_idx') || '0');
   }
   const q = QUOTES[quoteIdx % QUOTES.length];
-  const tEl = document.getElementById('quote-text');
-  const aEl = document.getElementById('quote-author');
-  if(tEl) tEl.textContent = q.text;
-  if(aEl) aEl.textContent = '— ' + q.author;
+  updateQuoteDisplay(q);
 }
 
 // ============================================================
@@ -3627,6 +3660,27 @@ function showFbLoading() {
   if(el) el.style.display = 'flex';
 }
 function skipFbLoading() { hideFbLoading(); }
+
+// ============================================================
+//  মুসলিম বাংলা অ্যাপ লিংক
+// ============================================================
+function openMuslimApp() {
+  // প্রথমে Play Store অ্যাপ খোলার চেষ্টা
+  const playStoreUrl = 'https://play.google.com/store/apps/details?id=com.tos.namajtime';
+  const appDeepLink = 'intent://details?id=com.tos.namajtime#Intent;scheme=market;action=android.intent.action.VIEW;package=com.android.vending;end';
+  
+  // মোবাইলে Play Store খুলবে, না থাকলে browser এ
+  const win = window.open(appDeepLink, '_blank');
+  if(!win || win.closed || typeof win.closed == 'undefined') {
+    window.open(playStoreUrl, '_blank');
+  }
+  
+  // Fallback: সরাসরি Play Store link
+  setTimeout(function() {
+    window.open(playStoreUrl, '_blank');
+  }, 500);
+}
+
 </script>
 
 <!-- PIN SCREEN -->
