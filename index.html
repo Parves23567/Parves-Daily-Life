@@ -3662,23 +3662,41 @@ function showFbLoading() {
 function skipFbLoading() { hideFbLoading(); }
 
 // ============================================================
-//  মুসলিম বাংলা অ্যাপ লিংক
+//  মুসলিম বাংলা অ্যাপ - সরাসরি ওপেন
 // ============================================================
 function openMuslimApp() {
-  // প্রথমে Play Store অ্যাপ খোলার চেষ্টা
-  const playStoreUrl = 'https://play.google.com/store/apps/details?id=com.tos.namajtime';
-  const appDeepLink = 'intent://details?id=com.tos.namajtime#Intent;scheme=market;action=android.intent.action.VIEW;package=com.android.vending;end';
-  
-  // মোবাইলে Play Store খুলবে, না থাকলে browser এ
-  const win = window.open(appDeepLink, '_blank');
-  if(!win || win.closed || typeof win.closed == 'undefined') {
-    window.open(playStoreUrl, '_blank');
-  }
-  
-  // Fallback: সরাসরি Play Store link
-  setTimeout(function() {
-    window.open(playStoreUrl, '_blank');
-  }, 500);
+  // Android Intent Deep Link - সরাসরি অ্যাপ খুলবে
+  var appPackage = 'com.tos.namajtime';
+  var intentUrl = 'intent://#Intent;package=' + appPackage + ';scheme=namajtime;action=android.intent.action.MAIN;category=android.intent.category.LAUNCHER;end';
+  var playUrl = 'https://play.google.com/store/apps/details?id=' + appPackage;
+
+  // iframe trick - সরাসরি অ্যাপ launch করে
+  var iframe = document.createElement('iframe');
+  iframe.style.display = 'none';
+  document.body.appendChild(iframe);
+
+  var timer = null;
+  var appOpened = false;
+
+  // Page visibility change detect করবে - অ্যাপ খুললে page hidden হবে
+  document.addEventListener('visibilitychange', function onVisible() {
+    if(document.hidden) {
+      appOpened = true;
+      clearTimeout(timer);
+      document.removeEventListener('visibilitychange', onVisible);
+    }
+  });
+
+  // Intent URL দিয়ে চেষ্টা
+  iframe.src = intentUrl;
+
+  // ১.৫ সেকেন্ড পরে অ্যাপ না খুললে Play Store এ যাবে
+  timer = setTimeout(function() {
+    document.body.removeChild(iframe);
+    if(!appOpened) {
+      window.location.href = playUrl;
+    }
+  }, 1500);
 }
 
 </script>
