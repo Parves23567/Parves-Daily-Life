@@ -819,6 +819,285 @@ canvas { max-height: 240px; }
   z-index: 89;
 }
 
+
+/* ===== PREMIUM ISLAMIC TEAL DESIGN ===== */
+
+/* Glass morphism header */
+#app-header {
+  background: rgba(255,255,255,0.92) !important;
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border-bottom: 1px solid rgba(13,122,110,0.12);
+  box-shadow: 0 2px 20px rgba(13,122,110,0.10);
+}
+[data-theme="dark"] #app-header {
+  background: rgba(15,53,48,0.92) !important;
+  border-bottom: 1px solid rgba(20,184,166,0.15);
+}
+
+/* Logo glow */
+.logo-icon {
+  background: linear-gradient(135deg, #0D7A6E, #14B8A6) !important;
+  box-shadow: 0 4px 14px rgba(13,122,110,0.4);
+}
+
+/* Premium card style */
+.card {
+  border: 1px solid rgba(13,122,110,0.10);
+  box-shadow: 0 2px 16px rgba(13,122,110,0.08), 0 1px 4px rgba(0,0,0,0.04);
+  border-radius: 20px;
+}
+.card:hover {
+  box-shadow: 0 8px 32px rgba(13,122,110,0.15), 0 2px 8px rgba(0,0,0,0.06);
+  transform: translateY(-2px);
+}
+
+/* Dashboard greeting - Islamic style */
+.dashboard-greeting {
+  background: linear-gradient(135deg, #0D7A6E 0%, #065F52 60%, #0A4A40 100%) !important;
+  box-shadow: 0 8px 32px rgba(13,122,110,0.35);
+  border: none;
+}
+.dashboard-greeting::before {
+  background: rgba(255,255,255,0.08) !important;
+}
+.dashboard-greeting::after {
+  background: rgba(255,255,255,0.05) !important;
+}
+
+/* Add decorative pattern to greeting */
+.dashboard-greeting::after {
+  content: '☽' !important;
+  position: absolute !important;
+  right: 16px !important; bottom: 8px !important;
+  font-size: 4rem !important;
+  opacity: 0.1 !important;
+  background: none !important;
+  width: auto !important; height: auto !important;
+  border-radius: 0 !important;
+}
+
+/* Premium buttons */
+.add-btn {
+  background: linear-gradient(135deg, #0D7A6E, #065F52) !important;
+  box-shadow: 0 4px 14px rgba(13,122,110,0.35) !important;
+  border-radius: 12px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.3px !important;
+}
+.add-btn:hover {
+  background: linear-gradient(135deg, #065F52, #044039) !important;
+  box-shadow: 0 6px 20px rgba(13,122,110,0.5) !important;
+  transform: translateY(-2px) !important;
+}
+
+.submit-btn {
+  background: linear-gradient(135deg, #0D7A6E, #065F52) !important;
+  box-shadow: 0 4px 16px rgba(13,122,110,0.35) !important;
+  border-radius: 16px !important;
+  font-size: 1.02rem !important;
+  letter-spacing: 0.3px !important;
+}
+.submit-btn:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 8px 24px rgba(13,122,110,0.5) !important;
+}
+
+/* FAB */
+#fab {
+  background: linear-gradient(135deg, #F59E0B, #D97706) !important;
+  box-shadow: 0 6px 20px rgba(245,158,11,0.45) !important;
+}
+#fab:hover {
+  box-shadow: 0 8px 28px rgba(245,158,11,0.6) !important;
+}
+
+/* Filter tabs */
+.filter-tab.active {
+  background: linear-gradient(135deg, #0D7A6E, #14B8A6) !important;
+  border-color: #0D7A6E !important;
+  box-shadow: 0 3px 10px rgba(13,122,110,0.3) !important;
+}
+.filter-tab:hover:not(.active) {
+  border-color: #0D7A6E !important;
+  color: #0D7A6E !important;
+  background: rgba(13,122,110,0.06) !important;
+}
+
+/* Nav items */
+.nav-item.active .nav-label { color: #0D7A6E !important; font-weight: 800 !important; }
+.nav-item.active .nav-icon { transform: scale(1.25) !important; }
+#bottom-nav {
+  box-shadow: 0 -4px 24px rgba(13,122,110,0.12);
+  border-top: 1px solid rgba(13,122,110,0.08);
+}
+
+/* Progress bars - teal gradient */
+.progress-fill {
+  background: linear-gradient(90deg, #0D7A6E, #14B8A6) !important;
+}
+.progress-bar {
+  background: rgba(13,122,110,0.12) !important;
+  border-radius: 20px;
+}
+
+/* List items hover */
+.list-item {
+  border: 1px solid rgba(13,122,110,0.08);
+  border-radius: 14px;
+}
+.list-item:hover {
+  border-color: rgba(13,122,110,0.2);
+  background: rgba(13,122,110,0.03) !important;
+}
+
+/* Checkboxes */
+.item-check {
+  border-color: #0D7A6E !important;
+  border-width: 2px !important;
+}
+.item-check.checked {
+  background: linear-gradient(135deg, #0D7A6E, #14B8A6) !important;
+  border-color: #0D7A6E !important;
+  box-shadow: 0 2px 8px rgba(13,122,110,0.35) !important;
+}
+
+/* Icon buttons */
+.icon-btn {
+  background: rgba(13,122,110,0.08) !important;
+  border: 1px solid rgba(13,122,110,0.12) !important;
+  color: #0D7A6E !important;
+}
+.icon-btn:hover {
+  background: #0D7A6E !important;
+  color: #fff !important;
+  box-shadow: 0 4px 14px rgba(13,122,110,0.35) !important;
+}
+
+/* Quick action buttons */
+.qa-btn {
+  border: 1px solid rgba(13,122,110,0.10) !important;
+  border-radius: 16px !important;
+  box-shadow: 0 2px 10px rgba(13,122,110,0.08) !important;
+}
+.qa-btn:hover {
+  background: linear-gradient(135deg, #0D7A6E, #14B8A6) !important;
+  border-color: transparent !important;
+  box-shadow: 0 4px 16px rgba(13,122,110,0.35) !important;
+  transform: translateY(-3px) !important;
+}
+
+/* Stat cards */
+.stat-card {
+  border: 1px solid rgba(13,122,110,0.10) !important;
+  border-radius: 16px !important;
+  box-shadow: 0 2px 12px rgba(13,122,110,0.08) !important;
+}
+.stat-num { color: #0D7A6E !important; }
+
+/* Modal */
+.modal {
+  border-radius: 28px 28px 0 0 !important;
+  border-top: 3px solid #0D7A6E;
+}
+.modal-handle {
+  background: rgba(13,122,110,0.25) !important;
+}
+
+/* Form controls */
+.form-control:focus {
+  border-color: #0D7A6E !important;
+  box-shadow: 0 0 0 3px rgba(13,122,110,0.15) !important;
+}
+
+/* Calendar today */
+.cal-day.today {
+  background: linear-gradient(135deg, #0D7A6E, #14B8A6) !important;
+  box-shadow: 0 3px 12px rgba(13,122,110,0.4) !important;
+}
+
+/* Item badges */
+.item-badge {
+  background: linear-gradient(135deg, #0D7A6E, #14B8A6) !important;
+  border-radius: 20px !important;
+}
+
+/* Reminder time badge */
+.reminder-time-badge {
+  background: linear-gradient(135deg, #0D7A6E, #14B8A6) !important;
+  border-radius: 12px !important;
+}
+
+/* Note card left border */
+.note-card::before { background: #0D7A6E !important; }
+
+/* Quote card - Islamic style */
+.quote-card {
+  background: linear-gradient(135deg, #052E28 0%, #0A4A3E 50%, #0D7A6E 100%) !important;
+  border-left: 4px solid #F59E0B !important;
+  box-shadow: 0 8px 32px rgba(13,122,110,0.3) !important;
+}
+
+/* Habit days */
+.habit-day.done {
+  background: linear-gradient(135deg, #0D7A6E, #14B8A6) !important;
+  box-shadow: 0 2px 8px rgba(13,122,110,0.35) !important;
+}
+.habit-day.today { border-color: #0D7A6E !important; border-width: 2px !important; }
+
+/* Section title highlight */
+.section-title span { color: #0D7A6E !important; }
+
+/* Scrollbar teal */
+::-webkit-scrollbar-thumb { background: linear-gradient(#0D7A6E, #14B8A6) !important; }
+
+/* Sync bar */
+#sync-bar.synced { background: rgba(13,122,110,0.92) !important; }
+#sync-bar.syncing { background: rgba(13,122,110,0.85) !important; }
+
+/* FB dot */
+.fb-dot.online { background: #0D7A6E !important; box-shadow: 0 0 6px #0D7A6E !important; }
+
+/* Bill amount */
+.bill-amount { color: #0D7A6E !important; }
+
+/* Expense balance */
+.exp-amount.balance { color: #0D7A6E !important; }
+
+/* Time slot */
+.time-slot { color: #0D7A6E !important; }
+
+/* Travel card - keep gradient but teal tinted */
+.travel-card {
+  background: linear-gradient(135deg, #0D7A6E, #065F52) !important;
+}
+
+/* Toggle switch on */
+.toggle-switch.on { background: #0D7A6E !important; }
+
+/* Action buttons */
+.action-btn.edit { color: #0D7A6E !important; }
+.action-btn.edit:hover { background: #0D7A6E !important; color: #fff !important; }
+
+/* Theme options selected */
+.theme-option.selected {
+  box-shadow: 0 0 0 3px #0D7A6E, 0 6px 20px rgba(13,122,110,0.4) !important;
+}
+
+/* Pin dot filled */
+.pin-dot.filled {
+  background: linear-gradient(135deg, #0D7A6E, #14B8A6) !important;
+}
+.pin-key:hover, .pin-key:active {
+  background: #0D7A6E !important;
+  border-color: #0D7A6E !important;
+  color: #fff !important;
+}
+
+/* Smooth animations */
+* { transition: background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease, color 0.2s ease; }
+.card, .list-item, .qa-btn, .add-btn, .submit-btn, #fab { transition: all 0.3s cubic-bezier(0.4,0,0.2,1) !important; }
+
 </style>
 </head>
 <body>
@@ -2847,6 +3126,19 @@ function showDailyQuote() {
 //  ADVANCED THEME SYSTEM
 // ============================================================
 const THEME_PRESETS = {
+  islamic: { primary:'#0D7A6E', secondary:'#F59E0B', dark:false, name:'ইসলামিক সবুজ' },
+  purple:  { primary:'#6C63FF', secondary:'#FF6B6B', dark:false, name:'রয়্যাল বেগুনি' },
+  ocean:   { primary:'#0EA5E9', secondary:'#06D6A0', dark:false, name:'সমুদ্র নীল' },
+  forest:  { primary:'#16A34A', secondary:'#FFD166', dark:false, name:'বনের সবুজ' },
+  sunset:  { primary:'#F97316', secondary:'#FBBF24', dark:false, name:'সূর্যাস্ত কমলা' },
+  rose:    { primary:'#E11D48', secondary:'#FB7185', dark:false, name:'গোলাপি লাল' },
+  night:   { primary:'#4338CA', secondary:'#818CF8', dark:true,  name:'রাতের নীল' },
+  gold:    { primary:'#D97706', secondary:'#FCD34D', dark:false, name:'সোনালি বাদামি' },
+  mint:    { primary:'#0F766E', secondary:'#14B8A6', dark:false, name:'মিন্ট সবুজ' },
+  cherry:  { primary:'#DB2777', secondary:'#F9A8D4', dark:false, name:'চেরি পিংক' },
+  sky:     { primary:'#1D4ED8', secondary:'#3B82F6', dark:false, name:'আকাশ নীল' },
+  dark:    { primary:'#6366F1', secondary:'#8B5CF6', dark:true,  name:'ডার্ক মোড' },
+  light:   { primary:'#64748B', secondary:'#475569', dark:false, name:'লাইট মোড' },
   purple: { primary:'#6C63FF', secondary:'#FF6B6B', dark:false, name:'রয়্যাল বেগুনি' },
   ocean:  { primary:'#0EA5E9', secondary:'#06D6A0', dark:false, name:'সমুদ্র নীল' },
   forest: { primary:'#16A34A', secondary:'#FFD166', dark:false, name:'বনের সবুজ' },
@@ -2861,7 +3153,7 @@ const THEME_PRESETS = {
   light:  { primary:'#64748B', secondary:'#475569', dark:false, name:'লাইট মোড' },
 };
 
-let currentPreset = localStorage.getItem('jm_theme_preset') || 'purple';
+let currentPreset = localStorage.getItem('jm_theme_preset') || 'islamic';
 let autoDarkEnabled = localStorage.getItem('jm_auto_dark') === 'true';
 let autoDarkInterval = null;
 
@@ -2903,34 +3195,91 @@ function toggleAutoDark() {
   const tog = document.getElementById('auto-dark-toggle');
   if(tog) tog.className = 'toggle-switch' + (autoDarkEnabled ? ' on' : '');
 
+  const infoEl = document.getElementById('prayer-theme-info');
+
   if(autoDarkEnabled) {
     checkAutoTheme();
     startAutoDarkWatch();
-    toast('অটো ডার্ক মোড চালু হয়েছে 🌓', 'success');
+    if(infoEl) infoEl.style.display = 'block';
+    toast('অটো থিম চালু — মাগরিব থেকে ফজর ডার্ক মোড 🌙', 'success');
   } else {
     stopAutoDarkWatch();
-    toast('অটো ডার্ক মোড বন্ধ হয়েছে', '');
+    if(infoEl) infoEl.style.display = 'none';
+    // Manual dark mode state restore
+    const isDark = localStorage.getItem('jm_darkmode') === 'true';
+    document.documentElement.setAttribute('data-theme', isDark ? 'dark' : '');
+    toast('অটো থিম বন্ধ হয়েছে ☀️', '');
   }
+}
+
+// নামাজের আনুমানিক সময় (বাংলাদেশ গড় সময়)
+// মাগরিব: সন্ধ্যা ৬:১৫ (গ্রীষ্ম) থেকে ৫:৩০ (শীত) — গড়: ৫:৪৫ PM = ১৭:৪৫
+// ফজর: ভোর ৫:১৫ (গ্রীষ্ম) থেকে ৫:৩০ (শীত) — গড়: ৫:২০ AM
+function getPrayerThemeMode() {
+  const now = new Date();
+  const h = now.getHours();
+  const m = now.getMinutes();
+  const totalMins = h * 60 + m;
+
+  // মাগরিব = ১৭:৩০ (5:30 PM), ফজর = ৫:১৫ (5:15 AM)
+  // মাস অনুযায়ী সময় adjust
+  const month = now.getMonth(); // 0-11
+  // গ্রীষ্মকাল (মার্চ-সেপ্টেম্বর): মাগরিব দেরিতে, শীতকাল: আগে
+  const isSummer = month >= 2 && month <= 8;
+  const maghribMins = isSummer ? (18 * 60 + 15) : (17 * 60 + 30); // 6:15 PM বা 5:30 PM
+  const fajrMins = isSummer ? (4 * 60 + 45) : (5 * 60 + 30);     // 4:45 AM বা 5:30 AM
+
+  // মাগরিব এর পরে অথবা ফজরের আগে = ডার্ক মোড
+  const isDark = totalMins >= maghribMins || totalMins < fajrMins;
+  return { isDark, maghribMins, fajrMins };
 }
 
 function checkAutoTheme() {
   if(!autoDarkEnabled) return;
-  const h = new Date().getHours();
-  const isDark = h >= 20 || h < 6; // রাত ৮টা থেকে সকাল ৬টা
+
+  const { isDark, maghribMins, fajrMins } = getPrayerThemeMode();
   const wasDark = document.documentElement.getAttribute('data-theme') === 'dark';
+
+  // Status info update
+  const infoEl = document.getElementById('prayer-theme-info');
+  const statusEl = document.getElementById('prayer-theme-status');
+  if(infoEl) infoEl.style.display = 'block';
+  if(statusEl) {
+    const now = new Date();
+    const nowMins = now.getHours() * 60 + now.getMinutes();
+    const isSummer = now.getMonth() >= 2 && now.getMonth() <= 8;
+    if(isDark) {
+      // কখন ফজর হবে
+      let minsToFajr;
+      if(nowMins >= maghribMins) minsToFajr = (24*60 - nowMins) + fajrMins;
+      else minsToFajr = fajrMins - nowMins;
+      const hLeft = Math.floor(minsToFajr/60);
+      const mLeft = minsToFajr % 60;
+      statusEl.innerHTML = '🌙 এখন ডার্ক মোড চলছে • ফজরে লাইট মোড হবে (আরও ' + toBnNum(hLeft) + ' ঘণ্টা ' + toBnNum(mLeft) + ' মিনিট)';
+    } else {
+      let minsToMaghrib = maghribMins - nowMins;
+      const hLeft = Math.floor(minsToMaghrib/60);
+      const mLeft = minsToMaghrib % 60;
+      statusEl.innerHTML = '☀️ এখন লাইট মোড চলছে • মাগরিবে ডার্ক মোড হবে (আরও ' + toBnNum(hLeft) + ' ঘণ্টা ' + toBnNum(mLeft) + ' মিনিট)';
+    }
+  }
+
   if(isDark !== wasDark) {
     document.documentElement.setAttribute('data-theme', isDark ? 'dark' : '');
     localStorage.setItem('jm_darkmode', isDark);
     const btn = document.getElementById('dark-btn');
     if(btn) btn.textContent = isDark ? '☀️' : '🌙';
-    if(isDark) toast('রাত হয়েছে — ডার্ক মোড চালু 🌙');
-    else toast('সকাল হয়েছে — লাইট মোড চালু ☀️');
+    if(isDark) {
+      toast('মাগরিবের সময় — ডার্ক মোড চালু হয়েছে 🌙', 'success');
+    } else {
+      toast('ফজরের সময় — লাইট মোড চালু হয়েছে ☀️', 'success');
+    }
   }
 }
 
 function startAutoDarkWatch() {
   stopAutoDarkWatch();
-  autoDarkInterval = setInterval(checkAutoTheme, 60000); // প্রতি মিনিটে চেক
+  autoDarkInterval = setInterval(checkAutoTheme, 30000); // প্রতি ৩০ সেকেন্ডে চেক
 }
 
 function stopAutoDarkWatch() {
@@ -3159,15 +3508,29 @@ function loadSavedTheme() {
     const t = THEME_PRESETS[preset];
     setColors(t.primary, t.secondary);
     currentPreset = preset;
+    // Apply dark mode if preset requires
+    if(t.dark) {
+      document.documentElement.setAttribute('data-theme','dark');
+      localStorage.setItem('jm_darkmode', true);
+    }
   } else if(p && s) {
     setColors(p, s);
+  } else {
+    // Default Islamic theme
+    setColors('#0D7A6E', '#F59E0B');
   }
 
-  // Auto dark
+  // Auto dark (prayer time based)
   autoDarkEnabled = localStorage.getItem('jm_auto_dark') === 'true';
   if(autoDarkEnabled) {
     checkAutoTheme();
     startAutoDarkWatch();
+  } else {
+    // Manual dark mode
+    const manualDark = localStorage.getItem('jm_darkmode') === 'true';
+    if(manualDark) {
+      document.documentElement.setAttribute('data-theme', 'dark');
+    }
   }
 
   // Update UI after DOM ready
@@ -4006,17 +4369,33 @@ function openMuslimApp() {
     <div class="modal-title">🎨 থিম পরিবর্তন <button class="modal-close" onclick="closeModal('themeModal')">✕</button></div>
 
     <!-- Auto Theme Toggle -->
-    <div class="auto-theme-bar">
-      <div style="font-size:1.4rem">🌓</div>
+    <div class="auto-theme-bar" style="background:linear-gradient(135deg,rgba(13,122,110,0.08),rgba(20,184,166,0.05));border:1.5px solid rgba(13,122,110,0.15)">
+      <div style="font-size:1.6rem">🌓</div>
       <div class="auto-theme-info">
-        <div class="auto-theme-title">অটো ডার্ক মোড</div>
-        <div class="auto-theme-sub">সময় অনুযায়ী থিম বদলাবে (রাত ৮টা - সকাল ৬টা)</div>
+        <div class="auto-theme-title" style="font-size:0.95rem">অটো থিম</div>
+        <div class="auto-theme-sub">মাগরিব থেকে ফজর পর্যন্ত ডার্ক মোডে থাকবে</div>
       </div>
       <button class="toggle-switch" id="auto-dark-toggle" onclick="toggleAutoDark()"></button>
     </div>
 
+    <!-- Prayer time based theme info -->
+    <div id="prayer-theme-info" style="display:none;background:rgba(13,122,110,0.08);border-radius:12px;padding:10px 14px;margin-bottom:12px;font-size:0.78rem;color:var(--text2)">
+      <div id="prayer-theme-status"></div>
+    </div>
+
     <!-- Theme Grid -->
     <div class="theme-modal-grid" id="theme-grid">
+
+      <div class="theme-option selected" onclick="applyThemePreset('islamic')"
+        style="background:linear-gradient(135deg,#0D7A6E 0%,#14B8A6 60%,#F59E0B 100%)">
+        <div class="theme-check">✓</div>
+        <div class="theme-option-dots">
+          <div class="theme-dot-sm" style="background:#0D7A6E"></div>
+          <div class="theme-dot-sm" style="background:#14B8A6"></div>
+          <div class="theme-dot-sm" style="background:#F59E0B"></div>
+        </div>
+        <div class="theme-option-name">🕌 ইসলামিক সবুজ</div>
+      </div>
 
       <div class="theme-option" onclick="applyThemePreset('purple')"
         style="background:linear-gradient(135deg,#6C63FF 0%,#A78BFA 50%,#FF6B6B 100%)">
