@@ -1287,6 +1287,182 @@ canvas { max-height: 240px; }
   font-size: 1.1rem;
 }
 
+
+/* ===== অ্যাপ শর্টকাট ===== */
+.shortcut-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin-bottom: 4px;
+}
+.shortcut-item {
+  display: flex; flex-direction: column;
+  align-items: center; gap: 6px;
+  cursor: pointer;
+  transition: var(--transition);
+}
+.shortcut-icon-wrap {
+  width: 54px; height: 54px;
+  border-radius: 16px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.6rem;
+  position: relative;
+  box-shadow: 0 4px 14px rgba(13,122,110,0.18);
+  transition: var(--transition);
+  border: 1.5px solid rgba(13,122,110,0.1);
+  background: var(--card);
+}
+.shortcut-icon-wrap:hover {
+  transform: scale(1.1) translateY(-2px);
+  box-shadow: 0 8px 22px rgba(13,122,110,0.28);
+}
+.shortcut-icon-wrap .del-shortcut {
+  position: absolute; top: -6px; right: -6px;
+  width: 18px; height: 18px;
+  background: var(--danger); color: #fff;
+  border-radius: 50%; border: none;
+  font-size: 0.6rem; cursor: pointer;
+  display: none; align-items: center; justify-content: center;
+  box-shadow: 0 2px 6px rgba(239,68,68,0.4);
+}
+.shortcut-item:hover .del-shortcut { display: flex; }
+.shortcut-label {
+  font-size: 0.65rem; font-weight: 600;
+  color: var(--text2); text-align: center;
+  max-width: 60px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.add-shortcut-btn {
+  width: 54px; height: 54px;
+  border-radius: 16px;
+  border: 2px dashed rgba(13,122,110,0.3);
+  background: rgba(13,122,110,0.04);
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  cursor: pointer; transition: var(--transition);
+  color: var(--primary);
+  font-size: 1.4rem;
+}
+.add-shortcut-btn:hover {
+  border-color: var(--primary);
+  background: rgba(13,122,110,0.1);
+  transform: scale(1.05);
+}
+.add-shortcut-label {
+  font-size: 0.6rem; font-weight: 700;
+  color: var(--primary); text-align: center; margin-top: 4px;
+}
+
+/* Edit mode */
+.shortcut-icon-wrap.edit-mode {
+  animation: wiggle 0.4s ease infinite alternate;
+}
+@keyframes wiggle {
+  from { transform: rotate(-3deg) scale(1.02); }
+  to { transform: rotate(3deg) scale(1.02); }
+}
+
+
+/* ===== অ্যাপ শর্টকাট ===== */
+.app-shortcut-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.app-shortcut-item {
+  display: flex; flex-direction: column;
+  align-items: center; gap: 6px;
+  padding: 12px 6px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  cursor: pointer;
+  transition: var(--transition);
+  position: relative;
+  text-decoration: none;
+  box-shadow: var(--shadow);
+}
+.app-shortcut-item:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-lg);
+  border-color: var(--primary);
+}
+.app-shortcut-icon {
+  width: 48px; height: 48px;
+  border-radius: 14px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.6rem;
+  background: linear-gradient(135deg, rgba(13,122,110,0.1), rgba(20,184,166,0.1));
+  box-shadow: 0 2px 8px rgba(13,122,110,0.15);
+}
+.app-shortcut-name {
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: var(--text2);
+  text-align: center;
+  line-height: 1.3;
+  max-width: 70px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  width: 100%;
+}
+.app-shortcut-del {
+  position: absolute;
+  top: -6px; right: -6px;
+  width: 20px; height: 20px;
+  background: var(--danger);
+  color: #fff; border: none;
+  border-radius: 50%; font-size: 0.65rem;
+  cursor: pointer; display: none;
+  align-items: center; justify-content: center;
+  box-shadow: 0 2px 6px rgba(239,68,68,0.4);
+  z-index: 2;
+}
+.app-shortcut-item:hover .app-shortcut-del,
+.shortcuts-edit-mode .app-shortcut-del {
+  display: flex;
+}
+.add-shortcut-btn {
+  display: flex; flex-direction: column;
+  align-items: center; gap: 6px;
+  padding: 12px 6px;
+  background: var(--card2);
+  border: 2px dashed var(--border);
+  border-radius: 16px;
+  cursor: pointer;
+  transition: var(--transition);
+}
+.add-shortcut-btn:hover {
+  border-color: var(--primary);
+  background: rgba(13,122,110,0.05);
+}
+.add-shortcut-btn .add-icon {
+  width: 48px; height: 48px;
+  border-radius: 14px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.5rem;
+  color: var(--primary);
+  background: rgba(13,122,110,0.08);
+}
+.add-shortcut-btn .add-label {
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: var(--primary);
+}
+.shortcuts-edit-btn {
+  font-size: 0.72rem; padding: 4px 10px;
+  border-radius: 20px; border: 1px solid var(--border);
+  background: var(--bg2); color: var(--text2);
+  cursor: pointer; font-family: inherit;
+  transition: var(--transition);
+}
+.shortcuts-edit-btn.editing {
+  background: var(--primary); color: #fff;
+  border-color: var(--primary);
+}
+
 </style>
 </head>
 <body>
@@ -1368,6 +1544,15 @@ canvas { max-height: 240px; }
         <button class="qa-btn" onclick="navigateTo('notes')"><span class="qa-icon">📝</span><span class="qa-label">নোট</span></button>
         <button class="qa-btn" onclick="navigateTo('travel')"><span class="qa-icon">✈️</span><span class="qa-label">ভ্রমণ</span></button>
       </div>
+    </div>
+
+    <!-- User App Shortcuts Widget -->
+    <div class="card" id="dashboard-shortcuts-card">
+      <div class="card-title" style="justify-content:space-between">
+        <span><span class="icon">📱</span>আমার অ্যাপ</span>
+        <button class="add-btn" style="padding:5px 10px;font-size:0.72rem" onclick="navigateTo('shortcuts')">সব দেখুন →</button>
+      </div>
+      <div class="app-shortcut-grid" id="dash-shortcuts-grid" style="grid-template-columns:repeat(4,1fr)"></div>
     </div>
 
     <div class="card">
@@ -1594,6 +1779,58 @@ canvas { max-height: 240px; }
   </div>
 
 
+  <!-- PAGE: APP SHORTCUTS -->
+  <div class="page" id="page-shortcuts">
+    <div class="section-header">
+      <div class="section-title">📱 অ্যাপ <span>শর্টকাট</span></div>
+      <button class="add-btn" onclick="openModal('shortcutModal')">+ যোগ করুন</button>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="icon">⭐</span>প্রিয় অ্যাপসমূহ</div>
+      <div class="shortcut-grid" id="shortcut-grid">
+        <!-- Shortcuts will be rendered here -->
+      </div>
+    </div>
+
+    <div class="card" style="background:linear-gradient(135deg,rgba(13,122,110,0.06),rgba(20,184,166,0.03))">
+      <div class="card-title"><span class="icon">💡</span>কীভাবে যোগ করবেন</div>
+      <div style="font-size:0.82rem;color:var(--text2);line-height:1.8">
+        <div>১. <strong>+ যোগ করুন</strong> বোতামে চাপুন</div>
+        <div>২. অ্যাপের <strong>নাম ও আইকন</strong> দিন</div>
+        <div>৩. <strong>Play Store লিংক</strong> বা App Package দিন</div>
+        <div>৪. সেভ করুন — এক ক্লিকে অ্যাপ খুলবে!</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="icon">🔗</span>জনপ্রিয় অ্যাপ লিংক</div>
+      <div style="font-size:0.78rem;color:var(--text3);margin-bottom:10px">নিচের যেকোনো অ্যাপ এক ক্লিকে যোগ করুন:</div>
+      <div id="popular-apps-list"></div>
+    </div>
+  </div>
+
+  <!-- PAGE: APP SHORTCUTS -->
+  <div class="page" id="page-shortcuts">
+    <div class="section-header">
+      <div class="section-title">📱 আমার <span>অ্যাপ শর্টকাট</span></div>
+      <button class="shortcuts-edit-btn" id="shortcuts-edit-btn" onclick="toggleShortcutsEdit()">✏️ সম্পাদনা</button>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="icon">⚡</span>দ্রুত অ্যাপ খুলুন</div>
+      <div class="app-shortcut-grid" id="app-shortcuts-grid"></div>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="icon">💡</span>কীভাবে যোগ করবেন</div>
+      <div style="font-size:0.82rem;color:var(--text2);line-height:1.7">
+        ১. <strong>+ যোগ করুন</strong> বোতামে চাপুন<br>
+        ২. অ্যাপের নাম ও ইমোজি দিন<br>
+        ৩. Play Store লিংক বা অ্যাপ প্যাকেজ নাম দিন<br>
+        ৪. সংরক্ষণ করুন — এক ক্লিকে অ্যাপ খুলবে!
+      </div>
+    </div>
+  </div>
+
   <!-- PAGE: AGE CALCULATOR -->
   <div class="page" id="page-age">
     <div class="card" style="background:linear-gradient(135deg,#6C63FF,#5046E4);color:#fff;border:none">
@@ -1678,6 +1915,7 @@ canvas { max-height: 240px; }
       <button class="qa-btn" style="padding:16px 10px" onclick="navigateTo('notes');closeModal('moreMenuModal')"><span class="qa-icon">📝</span><span class="qa-label" style="font-size:0.82rem">নোট</span></button>
       <button class="qa-btn" style="padding:16px 10px" onclick="navigateTo('travel');closeModal('moreMenuModal')"><span class="qa-icon">✈️</span><span class="qa-label" style="font-size:0.82rem">ভ্রমণ</span></button>
       <button class="qa-btn" style="padding:16px 10px" onclick="navigateTo('chill');closeModal('moreMenuModal')"><span class="qa-icon">🎉</span><span class="qa-label" style="font-size:0.82rem">আড্ডা/চিল</span></button>
+      <button class="qa-btn" style="padding:16px 10px" onclick="navigateTo('shortcuts');closeModal('moreMenuModal')"><span class="qa-icon">📱</span><span class="qa-label" style="font-size:0.82rem">অ্যাপ শর্টকাট</span></button>
       <button class="qa-btn" style="padding:16px 10px" onclick="navigateTo('chart');closeModal('moreMenuModal')"><span class="qa-icon">📊</span><span class="qa-label" style="font-size:0.82rem">খরচ চার্ট</span></button>
       <button class="qa-btn" style="padding:16px 10px" onclick="navigateTo('photos');closeModal('moreMenuModal')"><span class="qa-icon">📸</span><span class="qa-label" style="font-size:0.82rem">ছবি গ্যালারি</span></button>
       <button class="qa-btn" style="padding:16px 10px" onclick="navigateTo('age');closeModal('moreMenuModal')"><span class="qa-icon">🎂</span><span class="qa-label" style="font-size:0.82rem">বয়স ক্যালকুলেটর</span></button>
@@ -2020,6 +2258,108 @@ canvas { max-height: 240px; }
   </div>
 </div>
 
+<!-- SHORTCUT MODAL -->
+<div class="modal-overlay" id="shortcutModal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">📱 অ্যাপ শর্টকাট <button class="modal-close" onclick="closeModal('shortcutModal')">✕</button></div>
+    <input type="hidden" id="shortcut-edit-id">
+
+    <div class="form-group">
+      <label class="form-label">অ্যাপের নাম *</label>
+      <input type="text" id="shortcut-name" class="form-control" placeholder="যেমন: ইউটিউব, ফেসবুক...">
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">আইকন (ইমোজি) *</label>
+      <input type="text" id="shortcut-icon" class="form-control" placeholder="একটি ইমোজি দিন যেমন: 📺 🎵 📘">
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">ব্যাকগ্রাউন্ড রঙ</label>
+      <div class="color-picker" id="shortcut-color-picker">
+        <div class="color-dot selected" style="background:#0D7A6E" data-color="#0D7A6E" onclick="pickShortcutColor(this)"></div>
+        <div class="color-dot" style="background:#1D4ED8" data-color="#1D4ED8" onclick="pickShortcutColor(this)"></div>
+        <div class="color-dot" style="background:#7C3AED" data-color="#7C3AED" onclick="pickShortcutColor(this)"></div>
+        <div class="color-dot" style="background:#DC2626" data-color="#DC2626" onclick="pickShortcutColor(this)"></div>
+        <div class="color-dot" style="background:#D97706" data-color="#D97706" onclick="pickShortcutColor(this)"></div>
+        <div class="color-dot" style="background:#059669" data-color="#059669" onclick="pickShortcutColor(this)"></div>
+        <div class="color-dot" style="background:#DB2777" data-color="#DB2777" onclick="pickShortcutColor(this)"></div>
+        <div class="color-dot" style="background:#0891B2" data-color="#0891B2" onclick="pickShortcutColor(this)"></div>
+      </div>
+      <input type="hidden" id="shortcut-color" value="#0D7A6E">
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">অ্যাপ লিংক *</label>
+      <input type="text" id="shortcut-url" class="form-control" placeholder="https://play.google.com/store/apps/details?id=...">
+      <div style="font-size:0.72rem;color:var(--text3);margin-top:4px">Play Store লিংক বা সরাসরি ওয়েবসাইট লিংক দিন</div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">অ্যাপ Package Name (ঐচ্ছিক)</label>
+      <input type="text" id="shortcut-package" class="form-control" placeholder="যেমন: com.google.android.youtube">
+      <div style="font-size:0.72rem;color:var(--text3);margin-top:4px">দিলে সরাসরি অ্যাপ খুলবে, না দিলে ব্রাউজারে যাবে</div>
+    </div>
+
+    <button class="submit-btn" onclick="saveShortcut()">💾 সংরক্ষণ করুন</button>
+  </div>
+</div>
+
+<!-- APP SHORTCUT MODAL -->
+<div class="modal-overlay" id="shortcutModal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title"><span>📱</span> অ্যাপ শর্টকাট যোগ করুন <button class="modal-close" onclick="closeModal('shortcutModal')">✕</button></div>
+    <input type="hidden" id="shortcut-edit-id">
+
+    <div class="form-group">
+      <label class="form-label">অ্যাপের নাম *</label>
+      <input type="text" id="shortcut-name" class="form-control" placeholder="যেমন: মুসলিম বাংলা">
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">আইকন (ইমোজি)</label>
+      <input type="text" id="shortcut-icon" class="form-control" placeholder="যেমন: 🕌 📖 🎵 📺">
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">অ্যাপ লিংক *</label>
+      <input type="url" id="shortcut-url" class="form-control" placeholder="https://play.google.com/store/apps/details?id=...">
+      <div style="font-size:0.72rem;color:var(--text3);margin-top:4px">Play Store লিংক, Website URL বা যেকোনো লিংক</div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">ক্যাটেগরি</label>
+      <select id="shortcut-cat" class="form-control">
+        <option>ইসলামিক</option>
+        <option>খবর</option>
+        <option>বিনোদন</option>
+        <option>শিক্ষা</option>
+        <option>সামাজিক</option>
+        <option>অন্যান্য</option>
+      </select>
+    </div>
+
+    <!-- Popular apps suggestions -->
+    <div class="form-group">
+      <label class="form-label">জনপ্রিয় অ্যাপ (ক্লিক করে যোগ করুন)</label>
+      <div style="display:flex;flex-wrap:wrap;gap:6px">
+        <button class="filter-tab" onclick="fillShortcut('মুসলিম বাংলা','🕌','https://play.google.com/store/apps/details?id=com.tos.namajtime')">🕌 মুসলিম বাংলা</button>
+        <button class="filter-tab" onclick="fillShortcut('YouTube','▶️','https://youtube.com')">▶️ YouTube</button>
+        <button class="filter-tab" onclick="fillShortcut('Facebook','📘','https://facebook.com')">📘 Facebook</button>
+        <button class="filter-tab" onclick="fillShortcut('WhatsApp','💬','https://wa.me')">💬 WhatsApp</button>
+        <button class="filter-tab" onclick="fillShortcut('Gmail','📧','https://gmail.com')">📧 Gmail</button>
+        <button class="filter-tab" onclick="fillShortcut('Google Maps','🗺️','https://maps.google.com')">🗺️ Maps</button>
+        <button class="filter-tab" onclick="fillShortcut('Prothom Alo','📰','https://prothomalo.com')">📰 প্রথম আলো</button>
+        <button class="filter-tab" onclick="fillShortcut('bdnews24','📡','https://bdnews24.com')">📡 bdnews24</button>
+      </div>
+    </div>
+
+    <button class="submit-btn" onclick="saveShortcut()">💾 সংরক্ষণ করুন</button>
+  </div>
+</div>
+
 <!-- FAB SELECT MODAL -->
 <div class="modal-overlay" id="fabModal">
   <div class="modal">
@@ -2092,7 +2432,8 @@ const pageTitles = {
   chill:'আড্ডা/চিল প্ল্যান',
   chart:'খরচ বিশ্লেষণ',
   photos:'ছবি গ্যালারি',
-  age:'বয়স ক্যালকুলেটর'
+  age:'বয়স ক্যালকুলেটর',
+  shortcuts:'অ্যাপ শর্টকাট'
 };
 
 function navigateTo(page, btn) {
@@ -2130,7 +2471,8 @@ function renderPage(page) {
     chill: renderChill,
     chart: renderChart,
     photos: renderPhotos,
-    age: renderAge
+    age: renderAge,
+    shortcuts: renderShortcuts
   };
   if(renders[page]) renders[page]();
 }
@@ -2191,6 +2533,24 @@ function renderDashboard() {
   renderStats();
   renderDailySummary();
   renderUpcomingReminders();
+  renderDashShortcuts();
+}
+
+function renderDashShortcuts() {
+  const el = document.getElementById('dash-shortcuts-grid');
+  if(!el) return;
+  const list = getShortcuts().slice(0, 7);
+  el.innerHTML = list.map(s => `
+    <div class="app-shortcut-item" onclick="openShortcut('${esc(s.url)}')">
+      <div class="app-shortcut-icon">${s.icon || '📱'}</div>
+      <div class="app-shortcut-name">${esc(s.name)}</div>
+    </div>
+  `).join('') + `
+    <div class="add-shortcut-btn" onclick="navigateTo('shortcuts')">
+      <div class="add-icon" style="width:48px;height:48px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:1.4rem;color:var(--primary);background:rgba(13,122,110,0.08)">➕</div>
+      <div class="add-label" style="font-size:0.65rem;font-weight:700;color:var(--primary)">আরও</div>
+    </div>
+  `;
 }
 
 function renderStats() {
@@ -4519,6 +4879,148 @@ function openMuslimApp() {
   setTimeout(function() {
     window.location.href = 'https://play.google.com/store/apps/details?id=' + appPackage;
   }, 2000);
+}
+
+
+// ============================================================
+//  অ্যাপ শর্টকাট ম্যানেজার
+// ============================================================
+let shortcutsEditMode = false;
+
+// Default shortcuts
+const DEFAULT_SHORTCUTS = [
+  { id:'s1', name:'মুসলিম বাংলা', icon:'🕌', url:'https://play.google.com/store/apps/details?id=com.tos.namajtime', cat:'ইসলামিক' },
+  { id:'s2', name:'YouTube',       icon:'▶️', url:'https://youtube.com', cat:'বিনোদন' },
+  { id:'s3', name:'Facebook',      icon:'📘', url:'https://facebook.com', cat:'সামাজিক' },
+  { id:'s4', name:'WhatsApp',      icon:'💬', url:'https://wa.me', cat:'সামাজিক' },
+];
+
+function getShortcuts() {
+  const saved = localStorage.getItem('jm_shortcuts');
+  if(saved) return JSON.parse(saved);
+  // First time - save defaults
+  localStorage.setItem('jm_shortcuts', JSON.stringify(DEFAULT_SHORTCUTS));
+  return DEFAULT_SHORTCUTS;
+}
+
+function saveShortcuts(list) {
+  localStorage.setItem('jm_shortcuts', JSON.stringify(list));
+}
+
+function fillShortcut(name, icon, url) {
+  document.getElementById('shortcut-name').value = name;
+  document.getElementById('shortcut-icon').value = icon;
+  document.getElementById('shortcut-url').value = url;
+}
+
+function saveShortcut() {
+  const name = document.getElementById('shortcut-name').value.trim();
+  const url  = document.getElementById('shortcut-url').value.trim();
+  if(!name) { toast('অ্যাপের নাম দিন!', 'error'); return; }
+  if(!url)  { toast('লিংক দিন!', 'error'); return; }
+
+  const list = getShortcuts();
+  const editId = document.getElementById('shortcut-edit-id').value;
+  const item = {
+    id: editId || uid(),
+    name,
+    icon: document.getElementById('shortcut-icon').value || '📱',
+    url,
+    cat: document.getElementById('shortcut-cat').value
+  };
+
+  if(editId) {
+    const idx = list.findIndex(s => s.id === editId);
+    if(idx > -1) list[idx] = item;
+  } else {
+    list.push(item);
+  }
+
+  saveShortcuts(list);
+  closeModal('shortcutModal');
+  clearShortcutForm();
+  renderShortcuts();
+  // Also refresh dashboard quick actions
+  renderDashboardShortcuts();
+  toast(name + ' যোগ হয়েছে ✅', 'success');
+}
+
+function clearShortcutForm() {
+  ['shortcut-name','shortcut-icon','shortcut-url','shortcut-edit-id'].forEach(id => {
+    const el = document.getElementById(id);
+    if(el) el.value = '';
+  });
+}
+
+function openShortcut(url) {
+  if(!url) return;
+  // market:// for Play Store apps
+  if(url.includes('play.google.com/store/apps/details?id=')) {
+    const pkg = url.split('id=')[1].split('&')[0];
+    window.location.href = 'market://launch?id=' + pkg;
+    setTimeout(() => { window.open(url, '_blank'); }, 1500);
+  } else {
+    window.open(url, '_blank');
+  }
+}
+
+function editShortcut(id) {
+  const item = getShortcuts().find(s => s.id === id);
+  if(!item) return;
+  document.getElementById('shortcut-edit-id').value = item.id;
+  document.getElementById('shortcut-name').value = item.name;
+  document.getElementById('shortcut-icon').value = item.icon;
+  document.getElementById('shortcut-url').value = item.url;
+  document.getElementById('shortcut-cat').value = item.cat || 'অন্যান্য';
+  openModal('shortcutModal');
+}
+
+function deleteShortcut(id) {
+  if(!confirm('শর্টকাট মুছবেন?')) return;
+  const list = getShortcuts().filter(s => s.id !== id);
+  saveShortcuts(list);
+  renderShortcuts();
+  renderDashboardShortcuts();
+  toast('মুছে ফেলা হয়েছে');
+}
+
+function toggleShortcutsEdit() {
+  shortcutsEditMode = !shortcutsEditMode;
+  const grid = document.getElementById('app-shortcuts-grid');
+  const btn = document.getElementById('shortcuts-edit-btn');
+  if(grid) grid.classList.toggle('shortcuts-edit-mode', shortcutsEditMode);
+  if(btn) {
+    btn.textContent = shortcutsEditMode ? '✅ সম্পন্ন' : '✏️ সম্পাদনা';
+    btn.classList.toggle('editing', shortcutsEditMode);
+  }
+}
+
+function renderShortcuts() {
+  const el = document.getElementById('app-shortcuts-grid');
+  if(!el) return;
+  const list = getShortcuts();
+
+  el.innerHTML = list.map(s => `
+    <div class="app-shortcut-item" onclick="openShortcut('${esc(s.url)}')">
+      <button class="app-shortcut-del" onclick="event.stopPropagation();deleteShortcut('${s.id}')">✕</button>
+      <div class="app-shortcut-icon">${s.icon || '📱'}</div>
+      <div class="app-shortcut-name">${esc(s.name)}</div>
+    </div>
+  `).join('') + `
+    <div class="add-shortcut-btn" onclick="openModal('shortcutModal')">
+      <div class="add-icon">➕</div>
+      <div class="add-label">যোগ করুন</div>
+    </div>
+  `;
+}
+
+// Dashboard এ shortcuts দেখানো
+function renderDashboardShortcuts() {
+  const el = document.querySelector('.quick-actions');
+  if(!el) return;
+  const list = getShortcuts().slice(0, 7); // max 7 + 1 add button
+  // শুধু shortcut items update, fixed ones রেখে দাও
+  // Dashboard এ শুধু user shortcuts দেখাব আলাদা section এ
 }
 
 </script>
